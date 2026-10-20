@@ -1,0 +1,39 @@
+name: Build and release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Python
+        run: uv python install 3.14
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Build executable
+        run: uv run pyinstaller --clean --noconfirm --onedir --console --name statistiques-cat main.py
+
+      - name: Package executable
+        run: Compress-Archive -Path "dist/statistiques-cat" -DestinationPath "statistiques-cat-$($env:GITHUB_REF_NAME)-windows-x64.zip" -Force
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: statistiques-cat-${{ github.ref_name }}-windows-x64.zip
