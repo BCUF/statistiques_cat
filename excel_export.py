@@ -145,18 +145,64 @@ def formater_feuille_statistique(
         zones_fusion,  # dico indiquant quelles colonnes ont un en-tête fusionné
         rotated_columns,
         wrapped_columns,
-        cols_with_border_names):
+        cols_with_border_names,
+        titre=None,
+        remarque=None):
+
+    # Si la feuille Excel ne contient pas de titre, le tableau commencera à la 2ème ligne dans Excel (startrow=1, car Python commence à compter à partir de 0). Sinon, il commencera à la ligne 7 (pour laisser de la place à la remarque entre le titre et le tableau):
+
+    ligne_depart = 1
+
+    if titre is not None:
+        ligne_depart = 8
+
+    ligne_entete = ligne_depart
+    premiere_ligne_donnees = ligne_entete + 1
 
     # On transforme la dataframe en Excel:
     df.to_excel(
         writer,
         sheet_name=nom_feuille,
         index=False,
-        startrow=1 # on commence à la 2ème ligne dans Excel (startrow=1, car Python commence à compter à partir de 0)
+        startrow=ligne_depart 
     )
 
     workbook = writer.book # Fichier Excel complet
     worksheet = writer.sheets[nom_feuille] # Feuille Excel courante
+
+    # Si la feuille a un titre, formatage du titre et fusion des cellules de ce titre:
+
+    if titre is not None:
+
+        format_titre = workbook.add_format({
+            "bold": True,
+            "font_size": 16,
+            "align": "left"
+        })
+
+        worksheet.merge_range(
+            0, 0,
+            0, 3,
+            titre,
+            format_titre
+        )
+
+    # Formatage de la feuille Excel dans le cas où celle-ci contient une remarque:
+
+    if titre is not None and remarque is not None:
+
+        note_format = workbook.add_format({
+            "text_wrap": True,
+            "border": 1,
+            "bg_color": "#F2F2F2"
+        })
+
+        worksheet.merge_range(
+            2, 0,      # A3
+            5, 8,      # H7
+            remarque,
+            note_format
+        )
 
     # Création des formats:
     formats = create_formats(workbook)
@@ -178,9 +224,9 @@ def formater_feuille_statistique(
 
         # Fusion de cellules sur la ligne 0:
         worksheet.merge_range(
-            0,                      # première ligne = 0
+            ligne_entete - 1,       # première ligne = 0 ou 6, selon qu'il y a ou non une remarque avant le tableau
             col,                    # première colonne = col
-            0,                      # dernière ligne = 0
+            ligne_entete - 1,       # dernière ligne = 0
             col + span,             # dernière colonne = col + span
             texte,            # le texte à afficher dans les cellules fusionnées
             formats["data_left"]    # la bordure à gauche sera plus épaisse
@@ -205,8 +251,12 @@ def formater_feuille_statistique(
         else:
             fmt = formats["bold"]
 
-        # Ecriture de l'en-tête dans Excel, sur la ligne 1:
-        worksheet.write(1, col_index, col_name, fmt)
+        worksheet.write(
+            ligne_entete,
+            col_index,
+            col_name,
+            fmt
+        )
 
     # -------------------------------
     # Colonnes avec bordure épaisse
@@ -252,7 +302,12 @@ def formater_feuille_statistique(
             fmt_header = formats["bold_right"]
 
         # On réécrit l'en-tête sur la ligne 1 pour qu'il ait des bordures plus épaisses à certains endroits:
-        worksheet.write(1, col, header, fmt_header)
+        worksheet.write(
+            ligne_entete,
+            col,
+            header,
+            fmt_header
+        )
 
         # On récupère le texte des cellules fusionnées et on lui applique le format "bold_right" défini plus haut:
         if col in fusion_cols:
@@ -262,19 +317,24 @@ def formater_feuille_statistique(
             ][0]
 
             worksheet.write(
-                0,
+                ligne_entete - 1,
                 col,
                 texte,
                 formats["bold_right"]
             )
 
         # On parcourt les lignes de données et on leur applique le format "data_right" défini plus haut:
-        for row in range(2, len(df) + 2):
+        premiere_ligne_donnees = ligne_entete + 1
+
+        for row in range(
+                premiere_ligne_donnees,
+                premiere_ligne_donnees + len(df)
+        ):
 
             worksheet.write(
                 row,
                 col,
-                df.iloc[row - 2, col],
+                df.iloc[row - premiere_ligne_donnees, col],
                 formats["data_right"]
             )
 
@@ -311,7 +371,10 @@ def formater_feuille_statistique(
         # 1 = en-têtes
         # 2 = première ligne de données
 
-        ligne_total_excel = idx_total + 2
+        ligne_total_excel = (
+            idx_total
+            + premiere_ligne_donnees
+        )
 
         for col_num, valeur in enumerate(
             df.iloc[idx_total]
@@ -349,9 +412,9 @@ def formater_feuille_statistique(
 
     # On ajoute des filtres sur les en-têtes des colonnes dans Excel:
     worksheet.autofilter(
-        1,
+        ligne_entete,
         0,
-        len(df) + 1,
+        ligne_entete + len(df),
         len(df.columns) - 1
     )
 
@@ -601,8 +664,9 @@ def export_corrects(
             )
 
         export_origine(writer, df_origine, "Origine")
-        export_origine(writer, df_ind, "Origine IND")
         export_origine(writer, df_cat, "Origine CAT")
+        export_origine(writer, df_ind, "Origine IND")
+
 
 
 
@@ -696,15 +760,7 @@ def export_par_personne(person_files):
             engine="xlsxwriter"
         ) as writer:
 
-            # ==================================
-            # FEUILLE DETAIL
-            # ==================================
 
-            export_origine(
-                writer,
-                data["detail"],
-                "Détail"
-            )
 
             # ==================================
             # FEUILLE C-nbr par biblio
@@ -937,6 +993,16 @@ def export_par_personne(person_files):
                     len(df_dom.columns) - 1
                 )
 
+            # ==================================
+            # FEUILLE DETAIL
+            # ==================================
+
+            export_origine(
+                writer,
+                data["detail"],
+                "Détail"
+            )
+
 
 ########################################################
 # Nouvelle fonction pour obtenir un fichier par biblio
@@ -978,15 +1044,6 @@ def export_par_bibliotheque(bibli_files):
             engine="xlsxwriter"
         ) as writer:
 
-            # ==================================
-            # FEUILLE DETAIL
-            # ==================================
-
-            export_origine(
-                writer,
-                data["detail"],
-                "Détail"
-            )
 
             # ==================================
             # FEUILLE CATALOGAGE
@@ -1026,7 +1083,7 @@ def export_par_bibliotheque(bibli_files):
                 formater_feuille_statistique(
                     writer,
                     df_cat_export,
-                    "C-nbr par personne",
+                    "Catalogage",
                     {
                         "A": (
                             "Mode d'acquisition",
@@ -1057,35 +1114,17 @@ def export_par_bibliotheque(bibli_files):
                         ("A", "avant"),
                         ("C", "avant"),
                         ("01", "avant")
-                    ]
-                )
-
-                # Ajout d'une remarque expliquant que toutes les personnes présentes dans le fichier de la bibliothèque ne font pas forcément partie du personnel de la bibliothèque:
-                ws = writer.sheets["C-nbr par personne"]
-
-                note_format = writer.book.add_format({
-                    "text_wrap": True,
-                    "bg_color": "#F2F2F2",
-                    "border": 1
-                })
-
-                # Le bloc commence 1 colonne après la dernière colonne du tableau
-                col_depart = len(df_cat_export.columns) + 1
-
-                ws.merge_range(
-                    2,
-                    col_depart,
-                    5,
-                    col_depart + 7, # largeur du bloc de texte
-                    (
+                    ],
+                    titre="Catalogage par personne",
+                    remarque=(
                         "Remarque :\n"
                         "Les personnes figurant dans cette feuille "
                         "ne font pas nécessairement partie du personnel "
                         "de la bibliothèque. Toute personne ayant effectué "
                         "du catalogage pour cette bibliothèque est prise en compte."
-                    ),
-                    note_format
+                    )
                 )
+
 
 
 
@@ -1132,7 +1171,7 @@ def export_par_bibliotheque(bibli_files):
                 formater_feuille_statistique(
                     writer,
                     df_cat_biblio,
-                    "C-nbr par biblio",
+                    "Catalogage",
                     {
                         "A": (
                             "Mode d'acquisition",
@@ -1207,7 +1246,7 @@ def export_par_bibliotheque(bibli_files):
                 formater_feuille_statistique(
                     writer,
                     df_ind_export,
-                    "I-nbr par personne",
+                    "Indexation",
                     {
                         "I": (
                             "Mode d'indexation",
@@ -1229,34 +1268,18 @@ def export_par_bibliotheque(bibli_files):
                         "Nombre total indexation",
                         "Rien à préciser",
                         ("01", "avant")
-                    ]
+                    ],
+                        titre="Indexation par personne",
+                        remarque=(
+                            "Remarque :\n"
+                            "Les personnes figurant dans cette feuille "
+                            "ne font pas nécessairement partie du personnel "
+                            "de la bibliothèque. Toute personne ayant effectué "
+                            "de l'indexation pour cette bibliothèque est prise en compte."
+                        )
+                    
                 )
 
-                # Ajout d'une remarque expliquant que toutes les personnes présentes dans le fichier de la bibliothèque ne font pas forcément partie du personnel de la bibliothèque:
-                ws = writer.sheets["I-nbr par personne"]
-
-                note_format = writer.book.add_format({
-                    "text_wrap": True,
-                    "bg_color": "#F2F2F2",
-                    "border": 1
-                })
-
-                col_depart = len(df_ind_export.columns) + 1
-
-                ws.merge_range(
-                    2,
-                    col_depart,
-                    5,
-                    col_depart + 7, # largeur du bloc de texte
-                    (
-                        "Remarque :\n"
-                        "Les personnes figurant dans cette feuille "
-                        "ne font pas nécessairement partie du personnel "
-                        "de la bibliothèque. Toute personne ayant effectué "
-                        "de l'indexation pour cette bibliothèque est prise en compte."
-                    ),
-                    note_format
-                )
 
 
             # ==================================
@@ -1302,7 +1325,7 @@ def export_par_bibliotheque(bibli_files):
                 formater_feuille_statistique(
                     writer,
                     df_ind_biblio,
-                    "I-nbr par biblio",
+                    "Indexation",
                     {
                         "I": (
                             "Mode d'indexation",
@@ -1446,6 +1469,17 @@ def export_par_bibliotheque(bibli_files):
                     len(df_dom),
                     len(df_dom.columns) - 1
                 )
+
+            # ==================================
+            # FEUILLE DETAIL
+            # ==================================
+
+            export_origine(
+                writer,
+                data["detail"],
+                "Détail"
+            )
+
 
 
 

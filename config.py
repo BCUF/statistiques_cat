@@ -7,7 +7,7 @@ INPUT_FOLDER = "Données"
 EXPORT_FOLDER = "Exports"
 
 # Nom du fichier natif, exporté depuis Alma, qui contient les colonnes "MMS Id" et "993 - Local Param 14" (i.e. les champs 993):
-INPUT_FILENAME = "champs_993_all_{date}.xlsx"
+INPUT_FILENAME = "champs_990_993_all_{date}.xlsx"
 
 # Nom du fichier qui contiendra les erreurs repérées:
 ERROR_FILENAME = "erreurs_{date}.xlsx"
