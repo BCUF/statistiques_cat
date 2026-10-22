@@ -10,6 +10,10 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 To intall the dependency on your computer do `uv sync`
 
+## Run
+
+To run the software in the dev environement do `uv run main.py`
+
 ## Create a release
 Push a version tag such as `v0.1.0` to trigger the GitHub Actions release workflow:
 
