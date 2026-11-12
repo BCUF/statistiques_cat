@@ -12,15 +12,8 @@ from config import (
 
 def load_data():
 
-    # On définit current_dir, i.e. le dossier courant -- celui dans lequel se trouve le programme Python, et donc ce fichier data_loader.py -- ainsi que le dossier parent:
-    current_dir = os.path.dirname(__file__)
-    parent_dir = os.path.dirname(current_dir)
-
     # On définit data_dir, i.e. le dossier dans lequel se trouvent les données, en utilisant le nom de dossier (INPUT_FOLDER) défini dans config.py:
-    data_dir = os.path.join(
-        parent_dir,
-        INPUT_FOLDER
-    )
+    data_dir = os.path.abspath(INPUT_FOLDER)
 
     # Dans config.py, le nom du fichier importé comporte l'élément "{date}" qui est ici remplacé par la date du jour:
     fname = INPUT_FILENAME.format(

@@ -1,0 +1,466 @@
+class ExcelHelper:
+
+    ######################################################
+    # 1. Définition des formats pour les feuilles Excel
+    ######################################################
+
+    # On crée une fonction qu'on appellera pour formater nos différentes feuilles Excel.
+    @staticmethod
+    def create_formats(workbook):
+        return {
+
+            # Format 'bold': pour que le texte soit en gras:
+            "bold": workbook.add_format({
+                'bold': True
+            }),
+
+            # Format 'rotate': pour que le texte de certaines cellules subissent une rotation de 90 degrés:
+            "rotate": workbook.add_format({
+                'rotation': 90,
+                'bold': True,
+                'align': 'center'    
+            }),
+
+            # Format 'wrap': pour que le texte de certaines cellules soit en gras et subisse un retour à la ligne dans Excel:
+            "wrap": workbook.add_format({
+                'text_wrap': True,
+                'bold': True
+            }),
+
+            # Format 'bold_right': pour que les cellules des en-têtes soient en gras et aient une bordure à droite plus épaisse:
+            "bold_right": workbook.add_format({
+                'bold': True,
+                'right': 2,
+                'right_color': 'black'
+            }),
+
+            # Format 'rotate_right': pour que les cellules de certains en-têtes subissent une rotation de 90 degrés et aient une bordure à droite plus épaisse:
+            "rotate_right": workbook.add_format({
+                'rotation': 90,
+                'bold': True,
+                'align': 'center',
+                'right': 2,
+                'right_color': 'black'
+            }),
+
+            # Format 'wrap_right': texte en gras avec bordure à droite plus épaisse et retour à la ligne:
+            "wrap_right": workbook.add_format({
+                'text_wrap': True,
+                'bold': True,
+                'right': 2,
+                'right_color': 'black'
+            }),
+
+            # Format 'data_right': cellules avec uniquement une bordure à droite plus épaisse, sans autres modifications:
+            "data_right": workbook.add_format({
+                'right': 2,
+                'right_color': 'black'
+            }),
+
+            # Format 'data_left': cellules avec uniquement une bordure à gauche plus épaisse, sans autres modifications:
+            "data_left": workbook.add_format({
+                'left': 2,
+                'left_color': 'black'
+            }),
+
+            # Format 'text': pour éviter que les colonnes contenant les MMS IDs soient écrites en notation scientifique par Excel. Le symbole "@" indique à Excel de traiter les cellules comme du texte:
+            "text": workbook.add_format({
+                "num_format": "@"
+            })
+        }
+
+    ##################################################################
+    # 2. Fonction qui ajuste la largeur des colonnes à leur contenu
+    ##################################################################
+
+    @staticmethod
+    def autofit_columns(df, worksheet, rotated_columns, wrapped_columns):
+
+        for i, col in enumerate(df.columns):
+
+
+            # Largeur maximale du contenu:
+            #content_width = df[col].astype(str).map(len).max()
+
+            content_width = max(
+                len(str(value))
+                for value in df[col].fillna("")
+            )
+
+            # Colonnes où l'en-tête a subi une rotation: on ignore l'en-tête:
+            if col in rotated_columns:
+                header_width = 0
+                # On adapte la largeur en fonction du contenu:
+                final_width = content_width * 1.1 + 1
+                # On ajoute un espace supplémentaire pour la flèche du filtre:
+                final_width += 2
+                worksheet.set_column(i, i, final_width)
+                continue
+
+            # Colonnes où on a un retour à la ligne (wrap): on ignore l'en-tête:
+            elif col in wrapped_columns:
+                header_width = 0
+                # On choisit une largeur maximale raisonnable pour une colonne avec wrap:
+                max_width = 30
+                calculated = content_width * 1.1 + 5
+                final_width = min(calculated, max_width)
+                # Ajout d'un espace pour la flèche du filtre dans Excel:
+                final_width += 2
+                worksheet.set_column(i, i, final_width)
+                continue
+
+            # Colonnes "normales", sans retour à la ligne: l'en-tête est pris en compte:
+            else:
+                header_width = len(col)
+
+            final_width = max(content_width, header_width) * 1.1 + 1
+
+            # Ajout d'un espace pour la flèche du filtre dans Excel:
+            final_width += 2
+
+            worksheet.set_column(i, i, final_width)
+
+    ###############################################################################
+    # 3. Formatage des feuilles de catalogage/indexation par personne et par biblio
+    ###############################################################################
+
+    def formater_feuille_statistique(
+        writer,                     # objet ExcelWriter
+        df,                         # la dataframe à exporter 
+        nom_feuille,                # nom de la feuille Excel
+        zones_fusion,  # dico indiquant quelles colonnes ont un en-tête fusionné
+        rotated_columns,
+        wrapped_columns,
+        cols_with_border_names,
+        titre=None,
+        remarque=None):
+
+        # Si la feuille Excel ne contient pas de titre, le tableau commencera à la 2ème ligne dans Excel (startrow=1, car Python commence à compter à partir de 0). Sinon, il commencera à la ligne 7 (pour laisser de la place à la remarque entre le titre et le tableau):
+
+        ligne_depart = 1
+
+        if titre is not None:
+            ligne_depart = 8
+
+        ligne_entete = ligne_depart
+        premiere_ligne_donnees = ligne_entete + 1
+
+        # On transforme la dataframe en Excel:
+        df.to_excel(
+            writer,
+            sheet_name=nom_feuille,
+            index=False,
+            startrow=ligne_depart 
+        )
+
+        workbook = writer.book # Fichier Excel complet
+        worksheet = writer.sheets[nom_feuille] # Feuille Excel courante
+
+        # Si la feuille a un titre, formatage du titre et fusion des cellules de ce titre:
+
+        if titre is not None:
+
+            format_titre = workbook.add_format({
+                "bold": True,
+                "font_size": 16,
+                "align": "left"
+            })
+
+            worksheet.merge_range(
+                0, 0,
+                0, 3,
+                titre,
+                format_titre
+            )
+
+        # Formatage de la feuille Excel dans le cas où celle-ci contient une remarque:
+
+        if titre is not None and remarque is not None:
+
+            note_format = workbook.add_format({
+                "text_wrap": True,
+                "border": 1,
+                "bg_color": "#F2F2F2"
+            })
+
+            worksheet.merge_range(
+                2, 0,      # A3
+                5, 8,      # H7
+                remarque,
+                note_format
+            )
+
+        # Création des formats:
+        formats = ExcelHelper.create_formats(workbook)
+
+        format_total = workbook.add_format({
+        "bold": True,
+        "top": 2
+        })
+
+        # ------------------------------------------------------------------
+        # LIGNE 0 : mise en forme des cellules fusionnées (sur la ligne 0)
+        # ------------------------------------------------------------------
+
+        # On parcourt le dico zones_fusion ; col_name = nom de colonne de la df, texte = texte à afficher dans la cellule fusionnée, span = nombre de colonnes supplémentaires à ajouter dans la fusion:
+        for col_name, (texte, span) in zones_fusion.items():
+
+            # On cherche l'indice de la colonne dans la dataframe:
+            col = df.columns.get_loc(col_name)
+
+            # Fusion de cellules sur la ligne 0:
+            worksheet.merge_range(
+                ligne_entete - 1,       # première ligne = 0 ou 6, selon qu'il y a ou non une remarque avant le tableau
+                col,                    # première colonne = col
+                ligne_entete - 1,       # dernière ligne = 0
+                col + span,             # dernière colonne = col + span
+                texte,            # le texte à afficher dans les cellules fusionnées
+                formats["data_left"]    # la bordure à gauche sera plus épaisse
+            )
+
+        # -------------------------------------------------------
+        # LIGNE 1 : mise en forme des en-têtes (sur la ligne 1)
+        # -------------------------------------------------------
+
+        # On parcout les colonnes de la dataframe ; col_index = position de la colonne, col_name = nom de la colonne:
+        for col_index, col_name in enumerate(df.columns):
+
+            # Si le nom de la colonne est dans la liste "rotated_columns", on applique le format "rotate":
+            if col_name in rotated_columns:
+                fmt = formats["rotate"]
+
+            # Si le nom de la colonne est dans la liste "wrapped_columns", on applique le format "wrap":
+            elif col_name in wrapped_columns:
+                fmt = formats["wrap"]
+
+            # Dans tous les autres cas, le texte des en-têtes est seulement mis en gras:
+            else:
+                fmt = formats["bold"]
+
+            worksheet.write(
+                ligne_entete,
+                col_index,
+                col_name,
+                fmt
+            )
+
+        # -------------------------------
+        # Colonnes avec bordure épaisse
+        # -------------------------------
+
+        # On crée une liste vide qui contiendra les indices des colonnes avec bordure épaisse:
+        cols_with_border = []
+
+        for nom_colonne in cols_with_border_names:
+
+            # Comme on le verra plus bas, on a défini des tuples qui permettent de définir où doivent être placées les bordures plus épaisses dans Excel. On vérifie donc ici si les colonnes sont des tuples et si tel est le cas, on utilise que le premier élément du tuple.
+            if isinstance(nom_colonne, tuple):
+                cols_with_border.append(
+                    df.columns.get_loc(nom_colonne[0]) - 1
+                )
+            else:
+                cols_with_border.append(
+                    df.columns.get_loc(nom_colonne)
+                )
+
+        # On récupère les indices des colonnes fusionnées:
+        fusion_cols = [
+            df.columns.get_loc(col)
+            for col in zones_fusion
+        ]
+
+        # On réécrit les colonnes de façon à ce que certaines d'entre elles aient une bordure plus épaisse:
+        for col in cols_with_border:
+
+            # Récupération du nom de la colonne:
+            header = df.columns[col]
+
+            # Si la colonne est dans "rotated_columns", on lui applique le format "rotate_right":
+            if header in rotated_columns:
+                fmt_header = formats["rotate_right"]
+
+            # Si la colonne est dans "wrapped_columns", on lui applique le format "wrap_right":
+            elif header in wrapped_columns:
+                fmt_header = formats["wrap_right"]
+
+            # Dans les autres cas, on applique le format "bold_right":
+            else:
+                fmt_header = formats["bold_right"]
+
+            # On réécrit l'en-tête sur la ligne 1 pour qu'il ait des bordures plus épaisses à certains endroits:
+            worksheet.write(
+                ligne_entete,
+                col,
+                header,
+                fmt_header
+            )
+
+            # On récupère le texte des cellules fusionnées et on lui applique le format "bold_right" défini plus haut:
+            if col in fusion_cols:
+
+                texte = zones_fusion[
+                    df.columns[col]
+                ][0]
+
+                worksheet.write(
+                    ligne_entete - 1,
+                    col,
+                    texte,
+                    formats["bold_right"]
+                )
+
+            # On parcourt les lignes de données et on leur applique le format "data_right" défini plus haut:
+            premiere_ligne_donnees = ligne_entete + 1
+
+            for row in range(
+                    premiere_ligne_donnees,
+                    premiere_ligne_donnees + len(df)
+            ):
+
+                worksheet.write(
+                    row,
+                    col,
+                    df.iloc[row - premiere_ligne_donnees, col],
+                    formats["data_right"]
+                )
+
+        # ------------------------
+        # Mise en forme générale
+        # ------------------------
+
+        # On ajuste la largeur des colonnes à leur contenu:
+        ExcelHelper.autofit_columns(
+            df,
+            worksheet,
+            rotated_columns,
+            wrapped_columns
+        )
+
+        # On formate la ligne TOTAL si celle-ci est présente:
+        # On cherche une ligne TOTAL dans la première colonne
+
+        premiere_colonne = df.columns[0]
+
+        if (
+            "TOTAL"
+            in
+            df[premiere_colonne].astype(str).values
+        ):
+
+            idx_total = df.index[
+                df[premiere_colonne].astype(str)
+                == "TOTAL"
+            ][0]
+
+            # Ligne Excel :
+            # 0 = cellules fusionnées
+            # 1 = en-têtes
+            # 2 = première ligne de données
+
+            ligne_total_excel = (
+                idx_total
+                + premiere_ligne_donnees
+            )
+
+            for col_num, valeur in enumerate(
+                df.iloc[idx_total]
+            ):
+
+                format_total = workbook.add_format({
+                    "bold": True,
+                    "top": 2
+                })
+
+                format_total_right = workbook.add_format({
+                    "bold": True,
+                    "top": 2,
+                    "right": 2
+                })
+
+                if col_num in cols_with_border:
+
+                    fmt = format_total_right
+
+                else:
+
+                    fmt = format_total
+
+                worksheet.write(
+                    ligne_total_excel,
+                    col_num,
+                    valeur,
+                    fmt
+                )
+
+        # On gèle les deux premières lignes dans Excel:
+        worksheet.freeze_panes(2, 0)
+
+
+        # On ajoute des filtres sur les en-têtes des colonnes dans Excel:
+        worksheet.autofilter(
+            ligne_entete,
+            0,
+            ligne_entete + len(df),
+            len(df.columns) - 1
+        )
+
+
+    ##############################################################
+    # 4. Formatage excel pour exportation des feuilles "origine"
+    ##############################################################
+    '''
+    On définit la fonction export_origine() qui exporte les dataframes "d'origine", soit les feuilles 
+    contenant toutes les données d'origine (champs 993, MMS IDs, et contenu séparé par colonne de chaque champ 993, 
+    i.e. bibliothèque, date, traitement, etc.) qui ne contiennent pas d'erreurs dans un fichier Excel formaté. 
+    La première feuille contient absolument tout, les deux autres contiennent les champs 993 en lien avec 
+    le catalogage, la troisième ceux en lien avec l'indexation.
+    '''
+    @staticmethod
+    def export_origine(writer, df, nom_feuille):
+
+        # On transforme la dataframe en feuille Excel:
+        df.to_excel(writer, sheet_name=nom_feuille, index=False)
+
+        # On récupère le fichier et la feuille Excel pour pouvoir les formater:
+        workbook = writer.book
+        worksheet = writer.sheets[nom_feuille]
+
+        # On récupère les formats créés précédemment:
+        formats = ExcelHelper.create_formats(workbook)
+
+        # On récupère l'indice de la colonne "MMS Id":
+        col_mms = df.columns.get_loc("MMS Id")
+
+        # On parcourt toutes les lignes de la feuille et on convertit chacune d'elles en texte (strings) afin d'éviter qu'Excel ne transforme les MMS IDs avec la notation scientifique:
+        for row in range(1, len(df) + 1):
+            worksheet.write(
+                row,
+                col_mms,
+                str(df.iloc[row - 1, col_mms]),
+                formats["text"]
+            )
+
+        # On parcout les en-têtes des colonnes et on leur applique le format "bold":
+        for col_index, col_name in enumerate(df.columns):
+            worksheet.write(
+                0,
+                col_index,
+                col_name,
+                formats["bold"]
+            )
+
+
+
+        # On ajuste la largeur des colonnes à leur contenu:
+        ExcelHelper.autofit_columns(df, worksheet, [], [])
+
+        # On gèle la première ligne dans Excel:
+        worksheet.freeze_panes(1, 0)
+
+        # On ajoute des filtres sur les en-têtes des colonnes dans Excel:
+        worksheet.autofilter(
+            0,
+            0,
+            len(df),
+            len(df.columns) - 1
+        )
