@@ -9,12 +9,7 @@ Si l'on souhaite avoir uniquement le fichier contenant les feuilles Excel qui co
 # On importe les différentes fonctions définies dans nos différents fichiers:
 from pipeline import run_pipeline
 
-from excel_export import (
-    export_errors,
-    export_corrects,
-    export_par_personne,
-    export_par_bibliotheque
-)
+from excel_export import ExcelExporter
 
 from config import MODE_EXPORT
 
@@ -57,13 +52,14 @@ def main():
     else:
         choix = "1"
 
-        # ==================================
+    # ==================================
     # 1 - Tout
     # ==================================
 
+    exporter = ExcelExporter()
     if choix == "1":
 
-        export_corrects(
+        exporter.export_corrects(
             resultats["cat_personne"],
             resultats["cat_biblio"],
             resultats["ind_personne"],
@@ -74,15 +70,15 @@ def main():
             resultats["ind"]
         )
 
-        export_par_personne(
+        exporter.export_par_personne(
             resultats["person_files"]
         )
 
-        export_par_bibliotheque(
+        exporter.export_par_bibliotheque(
             resultats["bibli_files"]
         )
 
-        export_errors(
+        exporter.export_errors(
             df_errors
         )
 
@@ -92,7 +88,7 @@ def main():
 
     elif choix == "2":
 
-        export_errors(
+        exporter.export_errors(
             df_errors
         )
 
@@ -102,7 +98,7 @@ def main():
 
     elif choix == "3":
 
-        export_corrects(
+        exporter.export_corrects(
             resultats["cat_personne"],
             resultats["cat_biblio"],
             resultats["ind_personne"],
@@ -119,7 +115,7 @@ def main():
 
     elif choix == "4":
 
-        export_par_personne(
+        exporter.export_par_personne(
             resultats["person_files"]
         )
 
@@ -129,7 +125,7 @@ def main():
 
     elif choix == "5":
 
-        export_par_bibliotheque(
+        exporter.export_par_bibliotheque(
             resultats["bibli_files"]
         )
 
@@ -139,11 +135,11 @@ def main():
 
     elif choix == "6":
 
-        export_par_personne(
+        exporter.export_par_personne(
             resultats["person_files"]
         )
 
-        export_par_bibliotheque(
+        exporter.export_par_bibliotheque(
             resultats["bibli_files"]
         )
 
@@ -153,7 +149,7 @@ def main():
 
     elif choix == "7":
 
-        export_corrects(
+        exporter.export_corrects(
             resultats["cat_personne"],
             resultats["cat_biblio"],
             resultats["ind_personne"],
@@ -164,11 +160,11 @@ def main():
             resultats["ind"]
         )
 
-        export_par_personne(
+        exporter.export_par_personne(
             resultats["person_files"]
         )
 
-        export_par_bibliotheque(
+        exporter.export_par_bibliotheque(
             resultats["bibli_files"]
         )
 
