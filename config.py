@@ -1,10 +1,13 @@
-# Ce fichier contient les paramètres modifiables du programme. On les réunit dans un fichier séparé afin de se faciliter le travail à l'avenir, lorsqu'il faudra par exemple lancer le code en 2027 (il suffira alors de changer la valeur de la variable YEAR dans ce fichier), ou si l'on souhaite changer les noms de fichiers utilisés (INPUT_FILENAME) et exportés (ERROR_FILENAME et CORRECT_FILENAME).
+'''
+Ce fichier contient les paramètres modifiables du programme. On les réunit dans un fichier séparé afin de se faciliter le travail à l'avenir, lorsqu'il faudra par exemple lancer le code en 2027 (il suffira alors de changer la valeur de la variable YEAR dans ce fichier), ou si l'on souhaite changer les noms de fichiers utilisés (INPUT_FILENAME) et exportés (ERROR_FILENAME et CORRECT_FILENAME).
+'''
+import os
 
 # Nom du dossier dans lequel se trouve le fichier exporté depuis Alma:
-INPUT_FOLDER = "Données"
+INPUT_FOLDER = os.getenv("STAT_INPUT_FOLDER", "../Données")
 
 # Nom du dossier dans lequel les fichiers Excel seront exportés. Si celui-ci n'existe pas, il sera créé par notre programme:
-EXPORT_FOLDER = "Exports"
+EXPORT_FOLDER = os.getenv("STAT_EXPORT_FOLDER", "../Exports")
 
 # Nom du fichier natif, exporté depuis Alma, qui contient les colonnes "MMS Id" et "993 - Local Param 14" (i.e. les champs 993):
 INPUT_FILENAME = "champs_990_993_all_{date}.xlsx"
