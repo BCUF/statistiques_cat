@@ -10,10 +10,10 @@ from config import (
     INPUT_FOLDER
 )
 
-def load_data():
+def load_data(input_folder=INPUT_FOLDER):
 
-    # On définit data_dir, i.e. le dossier dans lequel se trouvent les données, en utilisant le nom de dossier (INPUT_FOLDER) défini dans config.py:
-    data_dir = os.path.abspath(INPUT_FOLDER)
+    # On définit data_dir avec le dossier fourni ou celui défini dans config.py:
+    data_dir = os.path.abspath(input_folder)
 
     # Dans config.py, le nom du fichier importé comporte l'élément "{date}" qui est ici remplacé par la date du jour:
     fname = INPUT_FILENAME.format(

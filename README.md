@@ -14,6 +14,8 @@ To intall the dependency on your computer do `uv sync`
 
 To run the software in the dev environement do `uv run main.py`
 
+To launch the optional graphical interface do `uv run main.py --gui`. It offers the same export choices as the text menu and lets you select the input and output folders.
+
 ## Create a release
 Push a version tag such as `v0.1.0` to trigger the GitHub Actions release workflow:
 

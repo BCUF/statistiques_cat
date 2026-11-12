@@ -26,7 +26,7 @@ jobs:
         run: uv sync --locked
 
       - name: Build executable
-        run: uv run pyinstaller --clean --noconfirm --onedir --console --name statistiques-cat main.py
+        run: uv run pyinstaller --clean --noconfirm --onedir --noconsole --name statistiques-cat main.py
 
       - name: Package executable
         run: Compress-Archive -Path "dist/statistiques-cat" -DestinationPath "statistiques-cat-$($env:GITHUB_REF_NAME)-windows-x64.zip" -Force

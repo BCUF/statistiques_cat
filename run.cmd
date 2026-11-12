@@ -1,0 +1,1 @@
+powershell -WindowStyle Hidden -Command "Start-Process '.\statistiques-cat.exe' -ArgumentList '--gui'"
