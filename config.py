@@ -3,14 +3,8 @@ Ce fichier contient les paramètres modifiables du programme. On les réunit dan
 '''
 import os
 
-# Nom du dossier dans lequel se trouve le fichier exporté depuis Alma:
-INPUT_FOLDER = os.getenv("STAT_INPUT_FOLDER", "../Données")
-
 # Nom du dossier dans lequel les fichiers Excel seront exportés. Si celui-ci n'existe pas, il sera créé par notre programme:
 EXPORT_FOLDER = os.getenv("STAT_EXPORT_FOLDER", "../Exports")
-
-# Nom du fichier natif, exporté depuis Alma, qui contient les colonnes "MMS Id" et "993 - Local Param 14" (i.e. les champs 993):
-INPUT_FILENAME = "champs_990_993_all_{date}.xlsx"
 
 # Nom du fichier qui contiendra les erreurs repérées:
 ERROR_FILENAME = "erreurs_{date}.xlsx"
@@ -346,9 +340,3 @@ BIBLIO_PERSONNES = {
     ]
 }
 
-#################################################
-# Mode de génération des fichiers
-#################################################
-
-# Remplacer MODE_EXPORT = "menu" par MODE_EXPORT = "auto" si on ne souhaite finalement plus afficher le menu au lancement du programme
-MODE_EXPORT = "menu"

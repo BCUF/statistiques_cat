@@ -19,13 +19,16 @@ from transformations_df import (
 )
 
 
-def run_pipeline(input_folder=None):
+def run_pipeline(input_file):
     """
     On exécute l'ensemble du traitement et on retourne toutes les données dont les différents main pourraient avoir besoin.
     """
 
     # Chargement des données brutes:
-    df_orig = load_data() if input_folder is None else load_data(input_folder)
+    if input_file is not None:
+        df_orig = load_data(input_file=input_file)
+    else:
+        raise ValueError("Le chemin du fichier Excel source n'a pas été fourni.")
 
     # Détection des erreurs liées à la longueur des champs 993:
     df_length_ok, err_length = detect_length_errors(df_orig)

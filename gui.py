@@ -12,7 +12,7 @@ from tkinter import filedialog, messagebox, ttk
 def lancer_interface(
     export_choices: dict[str, str],
     generer_exports: Callable[[str, str, str], None],
-    input_folder: str,
+    input_file: str,
     output_folder: str,
 ) -> None:
     root = tk.Tk()
@@ -29,15 +29,15 @@ def lancer_interface(
         font=("", 11, "bold"),
     ).grid(row=0, column=0, sticky="w", pady=(0, 8))
 
-    input_folder_var = tk.StringVar(value=os.path.abspath(input_folder))
+    input_file_var = tk.StringVar(value=os.path.abspath(input_file))
     output_folder_var = tk.StringVar(value=os.path.abspath(output_folder))
 
-    ttk.Label(frame, text="Dossier des fichiers d'entrée :").grid(
+    ttk.Label(frame, text="Fichier d'entrée :").grid(
         row=1, column=0, sticky="w"
     )
     input_row = ttk.Frame(frame)
     input_row.grid(row=2, column=0, sticky="ew", pady=(2, 8))
-    ttk.Entry(input_row, textvariable=input_folder_var, width=48).grid(
+    ttk.Entry(input_row, textvariable=input_file_var, width=48).grid(
         row=0, column=0, sticky="ew"
     )
     input_row.columnconfigure(0, weight=1)
@@ -54,13 +54,26 @@ def lancer_interface(
         if selected_dir:
             variable.set(selected_dir)
 
+    def choisir_fichier(variable: tk.StringVar) -> None:
+        initial_dir = os.path.dirname(variable.get())
+        if not os.path.isdir(initial_dir):
+            initial_dir = None
+        selected_file = filedialog.askopenfilename(
+            parent=root,
+            initialdir=initial_dir,
+            title="Choisir un fichier",
+            filetypes=[("Fichiers Excel", "*.xlsx")]
+        )
+        if selected_file:
+            variable.set(selected_file)
+
     ttk.Button(
         input_row,
         text="Parcourir…",
-        command=lambda: choisir_dossier(input_folder_var),
+        command=lambda: choisir_fichier(input_file_var),
     ).grid(row=0, column=1, padx=(6, 0))
 
-    ttk.Label(frame, text="Dossier des fichiers de sortie :").grid(
+    ttk.Label(frame, text="Dossier racine des fichiers de sortie :").grid(
         row=3, column=0, sticky="w"
     )
     output_row = ttk.Frame(frame)
@@ -92,13 +105,13 @@ def lancer_interface(
 
     def lancer() -> None:
         choix = choix_var.get()
-        selected_input = input_folder_var.get().strip()
+        selected_input = input_file_var.get().strip()
         selected_output = output_folder_var.get().strip()
 
-        if not selected_input or not os.path.isdir(selected_input):
+        if not selected_input or not os.path.isfile(selected_input):
             messagebox.showerror(
-                "Dossier d'entrée invalide",
-                "Veuillez choisir un dossier d'entrée existant.",
+                "Fichier d'entrée invalide",
+                "Veuillez choisir un fichier d'entrée existant.",
                 parent=root,
             )
             return
