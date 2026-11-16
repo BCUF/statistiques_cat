@@ -28,6 +28,9 @@ jobs:
       - name: Build executable
         run: uv run pyinstaller --clean --noconfirm --onedir --noconsole --name statistiques-cat main.py
 
+      - name: Add launcher
+        run: Copy-Item -Path run.cmd -Destination dist/statistiques-cat/run.cmd
+
       - name: Package executable
         run: Compress-Archive -Path "dist/statistiques-cat" -DestinationPath "statistiques-cat-$($env:GITHUB_REF_NAME)-windows-x64.zip" -Force
 

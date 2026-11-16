@@ -24,4 +24,4 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The workflow builds a Windows x64 executable and attaches a ZIP to the GitHub Release for that tag. After extracting the ZIP, put the source workbook in a `Données` folder next to `statistiques-cat.exe`, using the filename pattern `champs_993_all_YYYYMMDD.xlsx`.
+The workflow builds a Windows x64 executable and attaches a ZIP to the GitHub Release for that tag. The ZIP includes `run.cmd` to launch the graphical interface. After extracting it, put the source workbook in a `Données` folder next to `statistiques-cat.exe`, using the filename pattern `champs_993_all_YYYYMMDD.xlsx`.
