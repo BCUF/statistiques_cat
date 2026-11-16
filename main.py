@@ -1,64 +1,51 @@
+"""Generate Excel reports from the cataloging statistics source workbook."""
 
-'''Ce fichier, lorsqu'il est exécuté, génère deux fichiers Excel: le premier contient les erreurs repérées et le deuxième contient les feuilles Excel qui nous intéressent avec les champs "corrects" pour le catalogage et l'indexation. 
+import argparse
+import ctypes
 
-Si l'on souhaite avoir uniquement le fichier des erreurs, on pourra exécuter main_errors.py à la place de main.py.
-
-Si l'on souhaite avoir uniquement le fichier contenant les feuilles Excel qui contiennent les champs "corrects", on pourra exécuter main_corrects.py à la place de main.py.
-'''
-
-# On importe les différentes fonctions définies dans nos différents fichiers:
 from pipeline import run_pipeline
-
 from excel_export import ExcelExporter
+from config import EXPORT_FOLDER, INPUT_FOLDER, MODE_EXPORT
 
-from config import MODE_EXPORT
 
-# On définit demander_exports() pour afficher un menu au lancement du programme, afin de pouvoir choisir les fichiers qu'on souhaite générer:
+EXPORT_CHOICES = {
+    "1": "Tout",
+    "2": "Fichier des erreurs uniquement",
+    "3": "Fichier des champs corrects uniquement",
+    "4": "Fichiers par personne uniquement",
+    "5": "Fichiers par bibliothèque uniquement",
+    "6": "Fichiers des personnes + bibliothèques",
+    "7": "Fichiers des champs corrects + personnes + bibliothèques",
+}
+
 
 def demander_exports():
-
     print()
     print("Que souhaitez-vous générer ?")
     print()
-    print("1 - Tout")
-    print("2 - Fichier des erreurs uniquement")
-    print("3 - Fichier des champs corrects uniquement")
-    print("4 - Fichiers par personne uniquement")
-    print("5 - Fichiers par bibliothèque uniquement")
-    print("6 - Fichiers des personnes + bibliothèques")
-    print("7 - Fichiers des champs corrects + personnes + bibliothèques")
+    for choix, description in EXPORT_CHOICES.items():
+        print(f"{choix} - {description}")
     print()
 
-    choix = input("Votre choix : ").strip()
-
-    return choix
+    return input("Votre choix : ").strip()
 
 
-# On définit le main(), soit la partie principale du programme:
-def main():
+def _exporter_resultats(choix, resultats, output_folder=None):
+    if choix not in EXPORT_CHOICES:
+        raise ValueError(f"Choix non reconnu : {choix}")
 
-    resultats = run_pipeline()
-
-    # Préparation du fichier contenant les erreurs détectées. La dataframe est convertie au format texte (string) afin d'éviter qu'Excel ne convertisse les données (et notamment les MMS IDs) en utilisant l'écriture exponentielle:
     df_errors = (
         resultats["errors"]
         .astype(str)
         .set_index("Champs 993 - all")
     )
+    exporter = (
+        ExcelExporter(output_folder)
+        if output_folder is not None
+        else ExcelExporter()
+    )
 
-    # La valeur de MODE_EXPORT est définie dans config.py
-    if MODE_EXPORT == "menu":
-        choix = demander_exports()
-    else:
-        choix = "1"
-
-    # ==================================
-    # 1 - Tout
-    # ==================================
-
-    exporter = ExcelExporter()
-    if choix == "1":
-
+    if choix in {"1", "3", "7"}:
         exporter.export_corrects(
             resultats["cat_personne"],
             resultats["cat_biblio"],
@@ -67,117 +54,64 @@ def main():
             resultats["cent"],
             resultats["origine"],
             resultats["cat"],
-            resultats["ind"]
+            resultats["ind"],
         )
 
-        exporter.export_par_personne(
-            resultats["person_files"]
+    if choix in {"1", "4", "6", "7"}:
+        exporter.export_par_personne(resultats["person_files"])
+
+    if choix in {"1", "5", "6", "7"}:
+        exporter.export_par_bibliotheque(resultats["bibli_files"])
+
+    if choix in {"1", "2"}:
+        exporter.export_errors(df_errors)
+
+
+def _generer_exports(choix, input_folder=INPUT_FOLDER, output_folder=None):
+    resultats = run_pipeline(input_folder)
+    _exporter_resultats(choix, resultats, output_folder)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Génère les fichiers Excel de statistiques de catalogage."
+    )
+    parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="lance l'interface graphique au lieu du menu texte",
+    )
+    args = parser.parse_args(argv)
+
+    if args.gui:
+
+        # Masque et détruit la fenêtre de console sous Windows
+        ctypes.windll.kernel32.FreeConsole()
+
+        from gui import lancer_interface
+
+        lancer_interface(
+            EXPORT_CHOICES,
+            _generer_exports,
+            INPUT_FOLDER,
+            EXPORT_FOLDER,
         )
+        return
 
-        exporter.export_par_bibliotheque(
-            resultats["bibli_files"]
-        )
+    resultats = run_pipeline()
+    choix = demander_exports() if MODE_EXPORT == "menu" else "1"
 
-        exporter.export_errors(
-            df_errors
-        )
-
-    # ==================================
-    # 2 - Erreurs uniquement
-    # ==================================
-
-    elif choix == "2":
-
-        exporter.export_errors(
-            df_errors
-        )
-
-    # ==================================
-    # 3 - Champs corrects uniquement
-    # ==================================
-
-    elif choix == "3":
-
-        exporter.export_corrects(
-            resultats["cat_personne"],
-            resultats["cat_biblio"],
-            resultats["ind_personne"],
-            resultats["ind_biblio"],
-            resultats["cent"],
-            resultats["origine"],
-            resultats["cat"],
-            resultats["ind"]
-        )
-
-    # ==================================
-    # 4 - Personnes uniquement
-    # ==================================
-
-    elif choix == "4":
-
-        exporter.export_par_personne(
-            resultats["person_files"]
-        )
-
-    # ==================================
-    # 5 - Bibliothèques uniquement
-    # ==================================
-
-    elif choix == "5":
-
-        exporter.export_par_bibliotheque(
-            resultats["bibli_files"]
-        )
-
-    # ==================================
-    # 6 - Personnes + bibliothèques
-    # ==================================
-
-    elif choix == "6":
-
-        exporter.export_par_personne(
-            resultats["person_files"]
-        )
-
-        exporter.export_par_bibliotheque(
-            resultats["bibli_files"]
-        )
-
-    # ==================================
-    # 7 - Champs corrects + personnes + bibliothèques
-    # ==================================
-
-    elif choix == "7":
-
-        exporter.export_corrects(
-            resultats["cat_personne"],
-            resultats["cat_biblio"],
-            resultats["ind_personne"],
-            resultats["ind_biblio"],
-            resultats["cent"],
-            resultats["origine"],
-            resultats["cat"],
-            resultats["ind"]
-        )
-
-        exporter.export_par_personne(
-            resultats["person_files"]
-        )
-
-        exporter.export_par_bibliotheque(
-            resultats["bibli_files"]
-        )
-
-    else:
-
+    try:
+        _exporter_resultats(choix, resultats)
+    except ValueError as error:
         print()
-        print("Choix non reconnu.")
+        print(error)
         print()
+        return
 
     print()
     print("Les fichiers demandés ont été générés.")
-    input("Appuyez sur Enter pour fermer cette fenêtre.")
 
-# Le "if statement" suivant peut sembler mystérieux, mais il s'agit d'une bonne pratique dans le cas où main.py devrait être importé dans un autre fichier. Cela éviterait qu'il soit exécuté automatiquement dès son importation:
+
 if __name__ == "__main__":
     main()

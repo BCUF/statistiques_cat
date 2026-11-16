@@ -14,6 +14,8 @@ To intall the dependency on your computer do `uv sync`
 
 To run the software in the dev environement do `uv run main.py`
 
+To launch the optional graphical interface do `uv run main.py --gui`. It offers the same export choices as the text menu and lets you select the input and output folders.
+
 ## Create a release
 Push a version tag such as `v0.1.0` to trigger the GitHub Actions release workflow:
 
@@ -22,4 +24,4 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The workflow builds a Windows x64 executable and attaches a ZIP to the GitHub Release for that tag. After extracting the ZIP, put the source workbook in a `Données` folder next to `statistiques-cat.exe`, using the filename pattern `champs_993_all_YYYYMMDD.xlsx`.
+The workflow builds a Windows x64 executable and attaches a ZIP to the GitHub Release for that tag. The ZIP includes `run.cmd` to launch the graphical interface. After extracting it, put the source workbook in a `Données` folder next to `statistiques-cat.exe`, using the filename pattern `champs_993_all_YYYYMMDD.xlsx`.
