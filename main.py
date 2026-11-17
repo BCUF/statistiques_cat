@@ -42,6 +42,7 @@ def _exporter_resultats(
     resultats,
     output_folder=None,
     output_folders=None,
+    progress_callback=None,
 ):
     if isinstance(choix, str):
         if choix not in EXPORT_CHOICES:
@@ -63,6 +64,29 @@ def _exporter_resultats(
         .set_index("Champs 993 - all")
     )
     output_folders = output_folders or {}
+    total_outputs = 0
+    if "valid_fields" in products:
+        total_outputs += 1
+    if "employees" in products:
+        total_outputs += len(resultats["person_files"])
+    if "libraries" in products:
+        total_outputs += len(resultats["bibli_files"])
+    if "errors" in products:
+        total_outputs += 1
+
+    completed_outputs = 0
+    if progress_callback is not None:
+        progress_callback(0, total_outputs, "Préparation des fichiers...")
+
+    def report_completed_output(description):
+        nonlocal completed_outputs
+        completed_outputs += 1
+        if progress_callback is not None:
+            progress_callback(
+                completed_outputs,
+                total_outputs,
+                description,
+            )
 
     def get_exporter(product):
         product_folder = output_folders.get(product, output_folder)
@@ -83,19 +107,27 @@ def _exporter_resultats(
             resultats["cat"],
             resultats["ind"],
         )
+        report_completed_output("Fichier des champs corrects créé")
 
     if "employees" in products:
         get_exporter("employees").export_par_personne(
-            resultats["person_files"]
+            resultats["person_files"],
+            on_file_complete=lambda person: report_completed_output(
+                f"Fichier de {person} créé"
+            ),
         )
 
     if "libraries" in products:
         get_exporter("libraries").export_par_bibliotheque(
-            resultats["bibli_files"]
+            resultats["bibli_files"],
+            on_file_complete=lambda library: report_completed_output(
+                f"Fichier de {library} créé"
+            ),
         )
 
     if "errors" in products:
         get_exporter("errors").export_errors(df_errors)
+        report_completed_output("Fichier des erreurs créé")
 
 
 def _generer_exports(
@@ -103,13 +135,17 @@ def _generer_exports(
     input_file=None,
     output_folder=None,
     output_folders=None,
+    progress_callback=None,
 ):
+    if progress_callback is not None:
+        progress_callback(0, 0, "Analyse des données...")
     resultats = run_pipeline(input_file)
     _exporter_resultats(
         choix,
         resultats,
         output_folder,
         output_folders,
+        progress_callback,
     )
 
 

@@ -1,17 +1,72 @@
 """Tkinter interface for choosing and generating Excel exports."""
 
+import json
 import os
 import traceback
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import Callable
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 
+ProgressCallback = Callable[[int, int, str], None]
+
+
+def _settings_file_path() -> Path:
+    app_data = os.environ.get("APPDATA")
+    settings_root = Path(app_data) if app_data else Path.home() / ".config"
+    return settings_root / "Statistiques CAT" / "gui_settings.json"
+
+
+def _load_gui_settings(settings_file: Path) -> dict[str, object]:
+    try:
+        with settings_file.open(encoding="utf-8") as file:
+            settings = json.load(file)
+    except FileNotFoundError:
+        return {}
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(
+            f"Impossible de lire les préférences GUI dans {settings_file}: {error}"
+        ) from error
+
+    if not isinstance(settings, dict):
+        raise ValueError(
+            f"Le fichier de préférences GUI {settings_file} doit contenir un objet JSON."
+        )
+
+    for key in ("input_file", "output_folder", "export_choice"):
+        if key in settings and not isinstance(settings[key], str):
+            raise ValueError(
+                f"La préférence GUI « {key} » est invalide dans {settings_file}."
+            )
+
+    output_folders = settings.get("output_folders", {})
+    if not isinstance(output_folders, dict) or any(
+        not isinstance(product, str) or not isinstance(folder, str)
+        for product, folder in output_folders.items()
+    ):
+        raise ValueError(
+            f"Les dossiers de sortie enregistrés sont invalides dans {settings_file}."
+        )
+
+    return settings
+
+
+def _save_gui_settings(settings_file: Path, settings: dict[str, object]) -> None:
+    settings_file.parent.mkdir(parents=True, exist_ok=True)
+    with settings_file.open("w", encoding="utf-8") as file:
+        json.dump(settings, file, ensure_ascii=False, indent=2)
+        file.write("\n")
+
+
 def lancer_interface(
     export_choices: dict[str, str],
-    generer_exports: Callable[[str, str, str, dict[str, str]], None],
+    generer_exports: Callable[
+        [str, str, str, dict[str, str], ProgressCallback],
+        None,
+    ],
     input_file: str,
     output_folder: str,
 ) -> None:
@@ -19,6 +74,7 @@ def lancer_interface(
     root.title("Statistiques CAT")
     root.resizable(False, True)
     executor = ThreadPoolExecutor(max_workers=1)
+    settings_file = _settings_file_path()
 
     frame = ttk.Frame(root, padding=16)
     frame.grid()
@@ -29,16 +85,45 @@ def lancer_interface(
         font=("", 11, "bold"),
     ).grid(row=0, column=0, sticky="w", pady=(0, 8))
 
-    input_file_var = tk.StringVar(value=os.path.abspath(input_file))
-    output_folder_var = tk.StringVar(value=os.path.abspath(output_folder))
     output_products = {
         "errors": "Erreurs",
         "valid_fields": "Champs corrects",
         "employees": "Par personne",
         "libraries": "Par bibliothèque",
     }
+    try:
+        settings = _load_gui_settings(settings_file)
+    except ValueError as error:
+        messagebox.showwarning(
+            "Préférences GUI invalides",
+            f"{error}\nLes valeurs par défaut seront utilisées.",
+            parent=root,
+        )
+        settings = {}
+
+    saved_output_folders = settings.get("output_folders", {})
+    input_file_var = tk.StringVar(
+        value=(
+            settings.get("input_file")
+            if isinstance(settings.get("input_file"), str)
+            else os.path.abspath(input_file)
+        )
+    )
+    output_folder_var = tk.StringVar(
+        value=(
+            settings.get("output_folder")
+            if isinstance(settings.get("output_folder"), str)
+            else os.path.abspath(output_folder)
+        )
+    )
     output_folder_vars = {
-        product: tk.StringVar()
+        product: tk.StringVar(
+            value=(
+                saved_output_folders.get(product, "")
+                if isinstance(saved_output_folders, dict)
+                else ""
+            )
+        )
         for product in output_products
     }
 
@@ -124,7 +209,10 @@ def lancer_interface(
             ),
         ).grid(row=0, column=2, padx=(6, 0))
 
-    choix_var = tk.StringVar(value="1")
+    saved_choice = settings.get("export_choice")
+    if not isinstance(saved_choice, str) or saved_choice not in export_choices:
+        saved_choice = next(iter(export_choices), "1")
+    choix_var = tk.StringVar(value=saved_choice)
     first_choice_row = 6 + len(output_products)
     for row, (choix, description) in enumerate(
         export_choices.items(),
@@ -142,7 +230,76 @@ def lancer_interface(
     ttk.Label(frame, textvariable=status, wraplength=420).grid(
         row=status_row, column=0, sticky="w", pady=(8, 4)
     )
+    progress_bar = ttk.Progressbar(
+        frame,
+        mode="indeterminate",
+        length=420,
+    )
+    progress_bar.grid(
+        row=status_row + 1,
+        column=0,
+        sticky="ew",
+        pady=(0, 4),
+    )
     busy = {"value": False}
+
+    def sauvegarder_preferences() -> None:
+        settings = {
+            "input_file": input_file_var.get().strip(),
+            "output_folder": output_folder_var.get().strip(),
+            "output_folders": {
+                product: variable.get().strip()
+                for product, variable in output_folder_vars.items()
+            },
+            "export_choice": choix_var.get(),
+        }
+        try:
+            _save_gui_settings(settings_file, settings)
+        except OSError as error:
+            messagebox.showerror(
+                "Enregistrement des préférences impossible",
+                f"Les préférences GUI n'ont pas pu être enregistrées dans "
+                f"{settings_file}.\n\n{error}",
+                parent=root,
+            )
+
+    def afficher_progression(
+        completed: int,
+        total: int,
+        description: str,
+    ) -> None:
+        if total <= 0:
+            if progress_bar["mode"] != "indeterminate":
+                progress_bar.stop()
+                progress_bar.configure(mode="indeterminate")
+                progress_bar.start(10)
+            status.set(description)
+            return
+
+        if progress_bar["mode"] == "indeterminate":
+            progress_bar.stop()
+            progress_bar.configure(
+                mode="determinate",
+                maximum=total,
+                value=0,
+            )
+        else:
+            progress_bar.configure(maximum=total)
+        progress_bar["value"] = completed
+        status.set(f"{description} ({completed}/{total})")
+
+    def signaler_progression(
+        completed: int,
+        total: int,
+        description: str,
+    ) -> None:
+        root.after(
+            0,
+            afficher_progression,
+            completed,
+            total,
+            description,
+        )
 
     def lancer() -> None:
         choix = choix_var.get()
@@ -169,10 +326,13 @@ def lancer_interface(
             )
             return
 
+        sauvegarder_preferences()
         busy["value"] = True
         bouton_lancer.configure(state="disabled")
         bouton_annuler.configure(state="disabled")
         status.set("Génération en cours…")
+        progress_bar.configure(mode="indeterminate", value=0)
+        progress_bar.start(10)
 
         future = executor.submit(
             generer_exports,
@@ -180,6 +340,7 @@ def lancer_interface(
             selected_input,
             selected_output,
             selected_output_folders,
+            signaler_progression,
         )
 
         def terminer(future) -> None:
@@ -194,6 +355,7 @@ def lancer_interface(
 
     def afficher_erreur(error: Exception, details: str) -> None:
         busy["value"] = False
+        progress_bar.stop()
         status.set("La génération a échoué.")
         bouton_lancer.configure(state="normal")
         bouton_annuler.configure(state="normal")
@@ -205,6 +367,7 @@ def lancer_interface(
         )
 
     def afficher_succes() -> None:
+        progress_bar.stop()
         status.set("Les fichiers demandés ont été générés.")
         messagebox.showinfo(
             "Génération terminée",
@@ -215,10 +378,11 @@ def lancer_interface(
 
     def fermer() -> None:
         if not busy["value"]:
+            sauvegarder_preferences()
             root.destroy()
 
     boutons = ttk.Frame(frame)
-    boutons.grid(row=status_row + 1, column=0, sticky="e", pady=(8, 0))
+    boutons.grid(row=status_row + 2, column=0, sticky="e", pady=(8, 0))
     bouton_lancer = ttk.Button(boutons, text="Générer", command=lancer)
     bouton_lancer.grid(row=0, column=0, padx=(0, 6))
     bouton_annuler = ttk.Button(boutons, text="Annuler", command=fermer)

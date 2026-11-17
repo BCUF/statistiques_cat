@@ -246,7 +246,7 @@ class ExcelExporter:
     # Nouvelle fonction pour les fichiers par personne
     ##################################################
 
-    def export_par_personne(self, person_files):
+    def export_par_personne(self, person_files, on_file_complete=None):
 
         for personne, data in person_files.items():
 
@@ -519,12 +519,15 @@ class ExcelExporter:
                     "Détail"
                 )
 
+            if on_file_complete is not None:
+                on_file_complete(personne)
+
 
     ########################################################
     # Nouvelle fonction pour obtenir un fichier par biblio
     ########################################################
 
-    def export_par_bibliotheque(self, bibli_files):
+    def export_par_bibliotheque(self, bibli_files, on_file_complete=None):
 
         os.makedirs(self.export_dir, exist_ok=True)
 
@@ -986,3 +989,6 @@ class ExcelExporter:
                     data["detail"],
                     "Détail"
                 )
+
+            if on_file_complete is not None:
+                on_file_complete(biblio)

@@ -15,6 +15,7 @@ To intall the dependency on your computer do `uv sync`
 Running `uv run main.py` without arguments displays the command-line help.
 
 To launch the optional graphical interface do `uv run main.py --gui`. It offers the same export choices as the text menu and lets you select the input and output folders.
+The GUI saves the selected input file, export choice, and output folders to `%APPDATA%\Statistiques CAT\gui_settings.json` and restores them on the next launch. During generation, a progress bar shows the data-processing phase and each completed output workbook.
 
 For command-line exports, provide the full path to the input workbook and optionally choose a shared output directory, product-specific output directories, and products:
 
