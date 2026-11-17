@@ -43,6 +43,7 @@ def _exporter_resultats(
     output_folder=None,
     output_folders=None,
     progress_callback=None,
+    year=YEAR,
 ):
     if isinstance(choix, str):
         if choix not in EXPORT_CHOICES:
@@ -112,6 +113,7 @@ def _exporter_resultats(
     if "employees" in products:
         get_exporter("employees").export_par_personne(
             resultats["person_files"],
+            year,
             on_file_complete=lambda person: report_completed_output(
                 f"Fichier de {person} créé"
             ),
@@ -120,6 +122,7 @@ def _exporter_resultats(
     if "libraries" in products:
         get_exporter("libraries").export_par_bibliotheque(
             resultats["bibli_files"],
+            year,
             on_file_complete=lambda library: report_completed_output(
                 f"Fichier de {library} créé"
             ),
@@ -147,6 +150,7 @@ def _generer_exports(
         output_folder,
         output_folders,
         progress_callback,
+        year=year,
     )
 
 
