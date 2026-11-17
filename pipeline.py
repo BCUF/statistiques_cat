@@ -2,6 +2,7 @@
 
 import pandas as pd
 
+from config import YEAR, validate_year
 from data_loader import load_data
 
 from errors_detection import (
@@ -19,13 +20,18 @@ from transformations_df import (
 )
 
 
-def run_pipeline(input_folder=None):
+def run_pipeline(input_file, year=YEAR):
     """
     On exécute l'ensemble du traitement et on retourne toutes les données dont les différents main pourraient avoir besoin.
     """
 
+    validate_year(year)
+
     # Chargement des données brutes:
-    df_orig = load_data() if input_folder is None else load_data(input_folder)
+    if input_file is not None:
+        df_orig = load_data(input_file=input_file)
+    else:
+        raise ValueError("Le chemin du fichier Excel source n'a pas été fourni.")
 
     # Détection des erreurs liées à la longueur des champs 993:
     df_length_ok, err_length = detect_length_errors(df_orig)
@@ -36,13 +42,15 @@ def run_pipeline(input_folder=None):
     # Détection des erreurs liées à l'expression régulière:
     df_regex_ok, err_regex = detect_regex_errors(
         df_no_duplicates,
-        df_orig
+        df_orig,
+        year=year,
     )
 
     # Détection des dates futuristes:
     err_dates = detect_future_dates(
         df_regex_ok,
-        df_orig
+        df_orig,
+        year=year,
     )
 
     # Création de la dataframe contenant les erreurs:
@@ -58,7 +66,8 @@ def run_pipeline(input_folder=None):
     # Création de la dataframe "Origine":
     df_ok = create_df_origine(
         df_errors,
-        df_orig
+        df_orig,
+        year=year,
     )
 
     # Création des autres dataframes:

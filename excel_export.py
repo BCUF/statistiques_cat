@@ -246,15 +246,7 @@ class ExcelExporter:
     # Nouvelle fonction pour les fichiers par personne
     ##################################################
 
-    def export_par_personne(self, person_files):
-
-
-        par_personne_export_dir = os.path.join(
-            self.export_dir,
-            "Par_personne"
-        )
-
-        os.makedirs(par_personne_export_dir, exist_ok=True)
+    def export_par_personne(self, person_files, year, on_file_complete=None):
 
         for personne, data in person_files.items():
 
@@ -264,13 +256,20 @@ class ExcelExporter:
                 .replace("\\", "_")
             )
 
+            par_sigle_export_dir = os.path.join(
+                self.export_dir,
+                nom_personne
+            )
+
+            os.makedirs(par_sigle_export_dir, exist_ok=True)
+
             fname = (
                 f"{nom_personne}_"
-                f"{dt.datetime.today():%Y%m%d}.xlsx"
+                f"{year}.xlsx"
             )
 
             path = os.path.join(
-                par_personne_export_dir,
+                par_sigle_export_dir,
                 fname
             )
 
@@ -520,12 +519,15 @@ class ExcelExporter:
                     "Détail"
                 )
 
+            if on_file_complete is not None:
+                on_file_complete(personne)
+
 
     ########################################################
     # Nouvelle fonction pour obtenir un fichier par biblio
     ########################################################
 
-    def export_par_bibliotheque(self, bibli_files):
+    def export_par_bibliotheque(self, bibli_files, year, on_file_complete=None):
 
         os.makedirs(self.export_dir, exist_ok=True)
 
@@ -539,7 +541,7 @@ class ExcelExporter:
 
             fname = (
                 f"{nom_biblio}_"
-                f"{dt.datetime.today():%Y%m%d}.xlsx"
+                f"{year}.xlsx"
             )
 
             path = os.path.join(
@@ -987,3 +989,6 @@ class ExcelExporter:
                     data["detail"],
                     "Détail"
                 )
+
+            if on_file_complete is not None:
+                on_file_complete(biblio)

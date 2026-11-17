@@ -3,13 +3,46 @@
 import pandas as pd
 import re
 
-# Importation de CAT_IND_PATTERN et TRAITEMENT_PATTERN définis dans config.py:
+# Importation des patterns de l'année sélectionnée et de TRAITEMENT_PATTERN:
 from config import (
-    CAT_IND_PATTERN,
+    YEAR,
+    get_year_patterns,
     TRAITEMENT_PATTERN,
-    DATE_SPLIT_PATTERN,
     CDD_MAPPING
 )
+
+MOIS_STATISTIQUES = [f"{mois:02d}" for mois in range(1, 13)]
+
+COLONNES_STATISTIQUES_CATALOGAGE = [
+    "Catalogage",
+    "Notices sans inventaire",
+    "Recatalogage",
+    "Traitement pour une autre biblio",
+    "Rien à préciser",
+    "A", "D", "E", "F", "G", "K", "L", "O", "P", "S", "Z", "_",
+    "C", "I", "R", "V"
+]
+
+COLONNES_STATISTIQUES_INDEXATION = [
+    "Traitement pour une autre biblio",
+    "Rien à préciser",
+    "I", "J", "N"
+]
+
+
+def _completer_colonnes_statistiques(
+        df,
+        colonne_identifiant,
+        colonne_total,
+        colonnes_statistiques):
+    colonnes = [
+        colonne_identifiant,
+        colonne_total,
+        *colonnes_statistiques,
+        *MOIS_STATISTIQUES
+    ]
+    return df.reindex(columns=colonnes, fill_value=0)
+
 
 ###########################################################
 # 0. Extraction des domaines CDD présents dans un champ 990
@@ -54,7 +87,9 @@ def extract_domains(champ_990):
 # séparer toutes les parties des champs 993
 ########################################################
 
-def create_df_origine(df, df_orig):
+def create_df_origine(df, df_orig, year=YEAR):
+    year_patterns = get_year_patterns(year)
+
     # Afin d'éviter d'éventuels warnings:
     df = df.copy()
     df_orig = df_orig.copy()
@@ -88,9 +123,9 @@ def create_df_origine(df, df_orig):
     # Pour que les notices sans champ 990 soient traitées comme chaîne vide:
     df["Champ 990"] = (df["Champ 990"].fillna(""))
 
-    # On découpe les champs 993 en ses différentes composantes pour pouvoir en extraire les informations. CAT_IND_PATTERN est défini dans config.py et correspond à l'expression régulière permettant de séparer les champs 993 dans leurs différentes composantes:
+    # On sépare les composantes du champ 993 avec le pattern de l'année sélectionnée:
     df[["Bibliothèque", "Date brute", "Personne", "Traitement brut"]] = \
-    df["Champ 993"].str.extract(CAT_IND_PATTERN)
+    df["Champ 993"].str.extract(year_patterns.cat_ind_pattern)
 
     # Nettoyage du nom de la bibliothèque (on supprime les éventuels "_")
     df["Bibliothèque"] = df["Bibliothèque"].str.rstrip("_")
@@ -99,10 +134,10 @@ def create_df_origine(df, df_orig):
     df[["Traitement 1", "Traitement 2", "Traitement 3", "Traitement 4"]] = \
     df["Traitement brut"].str.extract(TRAITEMENT_PATTERN)
 
-    # Découpe de la date, en utilisant DATE_SPLIT_PATTERN, défini dans config.py:
+    # Découpe de la date avec le pattern de l'année sélectionnée:
     df[["Année", "Mois", "Jour"]] = (
         df["Date brute"]
-        .str.extract(DATE_SPLIT_PATTERN)
+        .str.extract(year_patterns.date_split_pattern)
     )
 
     # Création de la colonne "Date", qui contient une date lisible (au format JJ.MM.AAAA):
@@ -267,6 +302,13 @@ def create_other_dfs(df):
         "Traitement 4_V": "V"
     })            
 
+    df_final_cat_par_personne = _completer_colonnes_statistiques(
+        df_final_cat_par_personne,
+        "Personne",
+        "Nombre total catalogage",
+        COLONNES_STATISTIQUES_CATALOGAGE
+    )
+
 
     # --------------------------------------------------
     # INDEXATION PAR PERSONNE: df_final_ind_par_personne
@@ -334,6 +376,13 @@ def create_other_dfs(df):
         "Traitement 3_N": "N"
     })    
 
+    df_final_ind_par_personne = _completer_colonnes_statistiques(
+        df_final_ind_par_personne,
+        "Personne",
+        "Nombre total indexation",
+        COLONNES_STATISTIQUES_INDEXATION
+    )
+
 
     # ----------------------------------------------
     # CATALOGAGE PAR BIBLIO: df_final_cat_par_biblio
@@ -394,6 +443,13 @@ def create_other_dfs(df):
         "Traitement 4_V": "V"
     })       
 
+    df_final_cat_par_biblio = _completer_colonnes_statistiques(
+        df_final_cat_par_biblio,
+        "Bibliothèque",
+        "Nombre total catalogage",
+        COLONNES_STATISTIQUES_CATALOGAGE
+    )
+
 
     # ----------------------------------------------
     # INDEXATION PAR BIBLIO: df_final_ind_par_biblio
@@ -443,6 +499,13 @@ def create_other_dfs(df):
         "Traitement 3_N": "N"
     })    
 
+    df_final_ind_par_biblio = _completer_colonnes_statistiques(
+        df_final_ind_par_biblio,
+        "Bibliothèque",
+        "Nombre total indexation",
+        COLONNES_STATISTIQUES_INDEXATION
+    )
+
     # ------------------------------------------
     # CAT et IND pour la centrale: df_final_CENT
     # ------------------------------------------
@@ -487,6 +550,13 @@ def create_other_dfs(df):
             cat_cent_mois[mois],
             ind_cent_mois[mois]
         ]
+
+    df_final_cent = _completer_colonnes_statistiques(
+        df_final_cent,
+        "CENT traitement",
+        "Nombre total de livres traités",
+        []
+    )
 
     # On retourne toutes les dataframes qui seront utilisées dans notre deuxième fichier Excel:
     return (

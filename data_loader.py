@@ -4,33 +4,47 @@ import os
 import datetime as dt
 import pandas as pd
 
-# On importe depuis config.py les noms du dossier (INPUT_FOLDER) dans lequel se trouve le fichier contenant les données brutes, exportées depuis Alma Analytics (INPUT_FILENAME). Si ces noms doivent être modifiés, il faut donc les modifier dans config.py et pas ici!
-from config import (
-    INPUT_FILENAME,
-    INPUT_FOLDER
-)
+def load_data(input_file):
 
-def load_data(input_folder=INPUT_FOLDER):
+    if input_file is None:
+        raise ValueError("Le chemin du fichier Excel source n'a pas été fourni.")
+    else:
+        path = os.path.abspath(input_file)
+        if not os.path.isfile(path):
+            raise FileNotFoundError(
+                f"Le fichier suivant est introuvable : {path}"
+            )
 
-    # On définit data_dir avec le dossier fourni ou celui défini dans config.py:
-    data_dir = os.path.abspath(input_folder)
 
-    # Dans config.py, le nom du fichier importé comporte l'élément "{date}" qui est ici remplacé par la date du jour:
-    fname = INPUT_FILENAME.format(
-        date=f"{dt.datetime.today():%Y%m%d}"
+    # On importe le fichier Excel sans supposer que l'en-tête est sur la première ligne:
+    raw_df = pd.read_excel(path, engine="openpyxl", header=None)
+    required_headers = {
+        "993 - Local Param 14",
+        "MMS Id",
+        "990 - Local Param 13",
+    }
+    header_row = next(
+        (
+            index
+            for index, row in raw_df.iterrows()
+            if required_headers.issubset(
+                {
+                    str(value).strip()
+                    for value in row
+                    if pd.notna(value)
+                }
+            )
+        ),
+        None,
     )
-
-    # On définit path en joinant data_dir et le nom du fichier:
-    path = os.path.join(data_dir, fname)
-
-    # Si le fichier est mal nommé ou s'il existe un autre problème par rapport au chemin d'accès, un message d'erreur apparaît au moment de lancer le programme:
-    if not os.path.exists(path):
-        raise FileNotFoundError(
-            f"Le fichier suivant est introuvable : {path}"
+    if header_row is None:
+        raise ValueError(
+            "Impossible de trouver l'en-tête du tableau dans le fichier Excel."
         )
 
-    # On importe le fichier Excel:
-    df = pd.read_excel(path, engine="openpyxl")
+    df = raw_df.iloc[header_row + 1 :].copy()
+    df.columns = raw_df.iloc[header_row]
+    df = df.reset_index(drop=True)
 
     # La colonne "993 - Local Param 14" est renommée "Champs 993 - all":
     df = df.rename(

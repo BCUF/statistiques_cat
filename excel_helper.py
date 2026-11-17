@@ -83,8 +83,8 @@ class ExcelHelper:
             #content_width = df[col].astype(str).map(len).max()
 
             content_width = max(
-                len(str(value))
-                for value in df[col].fillna("")
+                (len(str(value)) for value in df[col].fillna("")),
+                default=len(str(col))  # Évite le crash si la colonne est vide et prend la taille du titre
             )
 
             # Colonnes où l'en-tête a subi une rotation: on ignore l'en-tête:
