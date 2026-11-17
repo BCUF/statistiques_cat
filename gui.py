@@ -11,7 +11,7 @@ from tkinter import filedialog, messagebox, ttk
 
 def lancer_interface(
     export_choices: dict[str, str],
-    generer_exports: Callable[[str, str, str], None],
+    generer_exports: Callable[[str, str, str, dict[str, str]], None],
     input_file: str,
     output_folder: str,
 ) -> None:
@@ -31,6 +31,16 @@ def lancer_interface(
 
     input_file_var = tk.StringVar(value=os.path.abspath(input_file))
     output_folder_var = tk.StringVar(value=os.path.abspath(output_folder))
+    output_products = {
+        "errors": "Erreurs",
+        "valid_fields": "Champs corrects",
+        "employees": "Par personne",
+        "libraries": "Par bibliothèque",
+    }
+    output_folder_vars = {
+        product: tk.StringVar()
+        for product in output_products
+    }
 
     ttk.Label(frame, text="Fichier d'entrée :").grid(
         row=1, column=0, sticky="w"
@@ -73,7 +83,7 @@ def lancer_interface(
         command=lambda: choisir_fichier(input_file_var),
     ).grid(row=0, column=1, padx=(6, 0))
 
-    ttk.Label(frame, text="Dossier racine des fichiers de sortie :").grid(
+    ttk.Label(frame, text="Dossier de sortie par défaut :").grid(
         row=3, column=0, sticky="w"
     )
     output_row = ttk.Frame(frame)
@@ -88,18 +98,49 @@ def lancer_interface(
         command=lambda: choisir_dossier(output_folder_var),
     ).grid(row=0, column=1, padx=(6, 0))
 
+    ttk.Label(
+        frame,
+        text=(
+            "Dossiers spécifiques (facultatifs, sinon dossier par défaut) :"
+        ),
+    ).grid(row=5, column=0, sticky="w", pady=(2, 4))
+    for row, (product, label) in enumerate(output_products.items(), start=6):
+        product_row = ttk.Frame(frame)
+        product_row.grid(row=row, column=0, sticky="ew", pady=2)
+        ttk.Label(product_row, text=f"{label} :", width=16).grid(
+            row=0, column=0, sticky="w"
+        )
+        ttk.Entry(
+            product_row,
+            textvariable=output_folder_vars[product],
+            width=38,
+        ).grid(row=0, column=1, sticky="ew")
+        product_row.columnconfigure(1, weight=1)
+        ttk.Button(
+            product_row,
+            text="Parcourir…",
+            command=lambda variable=output_folder_vars[product]: choisir_dossier(
+                variable
+            ),
+        ).grid(row=0, column=2, padx=(6, 0))
+
     choix_var = tk.StringVar(value="1")
-    for row, (choix, description) in enumerate(export_choices.items(), start=1):
+    first_choice_row = 6 + len(output_products)
+    for row, (choix, description) in enumerate(
+        export_choices.items(),
+        start=first_choice_row,
+    ):
         ttk.Radiobutton(
             frame,
             text=description,
             variable=choix_var,
             value=choix,
-        ).grid(row=row + 4, column=0, sticky="w", pady=2)
+        ).grid(row=row, column=0, sticky="w", pady=2)
 
     status = tk.StringVar(value=" ")
+    status_row = first_choice_row + len(export_choices)
     ttk.Label(frame, textvariable=status, wraplength=420).grid(
-        row=12, column=0, sticky="w", pady=(8, 4)
+        row=status_row, column=0, sticky="w", pady=(8, 4)
     )
     busy = {"value": False}
 
@@ -107,6 +148,11 @@ def lancer_interface(
         choix = choix_var.get()
         selected_input = input_file_var.get().strip()
         selected_output = output_folder_var.get().strip()
+        selected_output_folders = {
+            product: variable.get().strip()
+            for product, variable in output_folder_vars.items()
+            if variable.get().strip()
+        }
 
         if not selected_input or not os.path.isfile(selected_input):
             messagebox.showerror(
@@ -133,6 +179,7 @@ def lancer_interface(
             choix,
             selected_input,
             selected_output,
+            selected_output_folders,
         )
 
         def terminer(future) -> None:
@@ -171,7 +218,7 @@ def lancer_interface(
             root.destroy()
 
     boutons = ttk.Frame(frame)
-    boutons.grid(row=13, column=0, sticky="e", pady=(8, 0))
+    boutons.grid(row=status_row + 1, column=0, sticky="e", pady=(8, 0))
     bouton_lancer = ttk.Button(boutons, text="Générer", command=lancer)
     bouton_lancer.grid(row=0, column=0, padx=(0, 6))
     bouton_annuler = ttk.Button(boutons, text="Annuler", command=fermer)

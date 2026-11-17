@@ -37,7 +37,12 @@ EXPORT_CHOICE_PRODUCTS = {
 }
 
 
-def _exporter_resultats(choix, resultats, output_folder=None):
+def _exporter_resultats(
+    choix,
+    resultats,
+    output_folder=None,
+    output_folders=None,
+):
     if isinstance(choix, str):
         if choix not in EXPORT_CHOICES:
             raise ValueError(f"Choix non reconnu : {choix}")
@@ -57,14 +62,18 @@ def _exporter_resultats(choix, resultats, output_folder=None):
         .astype(str)
         .set_index("Champs 993 - all")
     )
-    exporter = (
-        ExcelExporter(output_folder)
-        if output_folder is not None
-        else ExcelExporter()
-    )
+    output_folders = output_folders or {}
+
+    def get_exporter(product):
+        product_folder = output_folders.get(product, output_folder)
+        return (
+            ExcelExporter(product_folder)
+            if product_folder is not None
+            else ExcelExporter()
+        )
 
     if "valid_fields" in products:
-        exporter.export_corrects(
+        get_exporter("valid_fields").export_corrects(
             resultats["cat_personne"],
             resultats["cat_biblio"],
             resultats["ind_personne"],
@@ -76,22 +85,32 @@ def _exporter_resultats(choix, resultats, output_folder=None):
         )
 
     if "employees" in products:
-        exporter.export_par_personne(resultats["person_files"])
+        get_exporter("employees").export_par_personne(
+            resultats["person_files"]
+        )
 
     if "libraries" in products:
-        exporter.export_par_bibliotheque(resultats["bibli_files"])
+        get_exporter("libraries").export_par_bibliotheque(
+            resultats["bibli_files"]
+        )
 
     if "errors" in products:
-        exporter.export_errors(df_errors)
+        get_exporter("errors").export_errors(df_errors)
 
 
 def _generer_exports(
     choix,
     input_file=None,
-    output_folder=None
+    output_folder=None,
+    output_folders=None,
 ):
     resultats = run_pipeline(input_file)
-    _exporter_resultats(choix, resultats, output_folder)
+    _exporter_resultats(
+        choix,
+        resultats,
+        output_folder,
+        output_folders,
+    )
 
 
 def main(argv=None):
@@ -113,6 +132,14 @@ def main(argv=None):
         "--output-dir",
         help=f"Output directory for the generated Excel files",
     )
+    for product in ("errors", "valid_fields", "employees", "libraries"):
+        parser.add_argument(
+            f"--{product.replace('_', '-')}-output-dir",
+            help=(
+                f"Output directory for {product.replace('_', ' ')} "
+                "exports (overrides --output-dir)"
+            ),
+        )
     parser.add_argument(
         "-p",
         "--product",
@@ -125,7 +152,15 @@ def main(argv=None):
     if args.gui:
         if any(
             value is not None
-            for value in (args.input_file, args.output_dir, args.product)
+            for value in (
+                args.input_file,
+                args.output_dir,
+                args.errors_output_dir,
+                args.valid_fields_output_dir,
+                args.employees_output_dir,
+                args.libraries_output_dir,
+                args.product,
+            )
         ):
             parser.error("--gui cannot be combined with other options")
 
@@ -142,12 +177,24 @@ def main(argv=None):
         )
         return
 
+    output_folders = {
+        product: getattr(args, f"{product}_output_dir")
+        for product in ("errors", "valid_fields", "employees", "libraries")
+        if getattr(args, f"{product}_output_dir") is not None
+    }
     if any(
         value is not None
-        for value in (args.input_file, args.output_dir, args.product)
+        for value in (
+            args.input_file,
+            args.output_dir,
+            args.product,
+            *output_folders.values(),
+        )
     ):
         if args.input_file is None:
             parser.error("--input-file is required to generate exports")
+        if any(not folder.strip() for folder in output_folders.values()):
+            parser.error("Product-specific output directories cannot be empty")
 
         products = (
             PRODUCT_CHOICES["all"]
@@ -157,10 +204,11 @@ def main(argv=None):
         _generer_exports(
             products,
             input_file=args.input_file,
-            output_folder=args.output_dir
+            output_folder=args.output_dir,
+            output_folders=output_folders,
         )
         print()
-        print("Asked files have been generated in the output folder.")
+        print("Asked files have been generated in the configured output folders.")
         return
 
     parser.print_help()
