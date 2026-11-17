@@ -5,7 +5,7 @@ import datetime as dt
 import pandas as pd
 
 # On importe l'année, le nombre maximal de champs 993 estimé pour une ressource, et les regex pour la date, le catalogage et l'indexation ; ceux-ci sont définis dans le fichier config.py:
-from config import MAX_993_FIELDS, DATE_PATTERN, CATALOGAGE_PATTERN, INDEXATION_PATTERN
+from config import MAX_993_FIELDS, YEAR, get_year_patterns
 
 
 ########################################################
@@ -96,14 +96,16 @@ def detect_duplicates(df):
 '''
 On définit la fonction detect_regex_errors(df_ok, df_orig), qui prendra comme arguments la dataframe df_ok créée par detect_duplicates() et notre dataframe d'origine. Cette fonction détecte d'autres erreurs non détectées jusqu'à présent, notamment des éventuels mélanges entre le catalogage et l'indexation lorsqu'il s'agit d'indiquer quel traitement a été effectué (un exemple d'une telle erreur serait l'indication du traitement I_S_, car la lettre S ne peut pas être utilisée pour indiquer le mode d'indexation). Il s'agit donc de comparer les champs 993 à deux expressions régulières différentes: une pour le catalogage et une pour l'indexation.
 '''
-def detect_regex_errors(df_ok, df_orig):
+def detect_regex_errors(df_ok, df_orig, year=YEAR):
 
     # Pour éviter certains warnings Pandas (e.g. SettingWithCopyWarning):
     df_ok = df_ok.copy()
 
-    # Détecte les champs 993 qui ne correspondent pas aux expressions régulières attendues pour le catalogage et l'indexation. Ces dernières sont définies dans le fichier config.py et il ne faut donc rien modifier ici:
+    # Les patterns de catalogage et d'indexation sont construits pour l'année sélectionnée.
+    year_patterns = get_year_patterns(year)
     pattern = re.compile(
-        f"{CATALOGAGE_PATTERN}|{INDEXATION_PATTERN}"
+        f"{year_patterns.catalogage_pattern}|"
+        f"{year_patterns.indexation_pattern}"
     )
 
     # Création de la dataframe df_good, qui contient tous les cas corrects, ainsi que la dataframe df_bad, qui contient tous les cas pour lesquels une erreur a été repérée au niveau de l'une des expressions régulières testées ci-dessus:
@@ -133,13 +135,16 @@ def detect_regex_errors(df_ok, df_orig):
 '''
 On définit la fonction detect_future_dates(df_ok, df_orig), qui prendra comme arguments la dataframe df_good créée par detect_regex_errors() et notre dataframe d'origine. Cette fonction détecte les cas où la date entrée dans un champ 993 est postérieure à la date du jour et retourne uniquement la dataframe df_bad contenant ces cas.
 '''
-def detect_future_dates(df_ok, df_orig):
+def detect_future_dates(df_ok, df_orig, year=YEAR):
 
     # Pour éviter certains warnings Pandas (e.g. SettingWithCopyWarning)
     df_ok = df_ok.copy()
 
     # On crée la colonne "Date brute" qui contient la date extraite du champ 993:
-    df_ok["Date brute"] = df_ok["Champ 993"].str.extract(rf'({DATE_PATTERN})')
+    date_pattern = get_year_patterns(year).date_pattern
+    df_ok["Date brute"] = df_ok["Champ 993"].str.extract(
+        rf'({date_pattern})'
+    )
 
     # Conversion du format "string" de la date en format "date":
     df_ok["Date brute"] = pd.to_datetime(df_ok["Date brute"], format="%Y%m%d")

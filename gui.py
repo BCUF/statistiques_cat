@@ -10,6 +10,8 @@ from typing import Callable
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
+from config import YEAR, validate_year
+
 
 ProgressCallback = Callable[[int, int, str], None]
 
@@ -36,7 +38,7 @@ def _load_gui_settings(settings_file: Path) -> dict[str, object]:
             f"Le fichier de préférences GUI {settings_file} doit contenir un objet JSON."
         )
 
-    for key in ("input_file", "output_folder", "export_choice"):
+    for key in ("input_file", "output_folder", "export_choice", "year"):
         if key in settings and not isinstance(settings[key], str):
             raise ValueError(
                 f"La préférence GUI « {key} » est invalide dans {settings_file}."
@@ -64,11 +66,12 @@ def _save_gui_settings(settings_file: Path, settings: dict[str, object]) -> None
 def lancer_interface(
     export_choices: dict[str, str],
     generer_exports: Callable[
-        [str, str, str, dict[str, str], ProgressCallback],
+        [str, str, str, dict[str, str], str, ProgressCallback],
         None,
     ],
     input_file: str,
     output_folder: str,
+    default_year: str = YEAR,
 ) -> None:
     root = tk.Tk()
     root.title("Statistiques CAT")
@@ -168,11 +171,29 @@ def lancer_interface(
         command=lambda: choisir_fichier(input_file_var),
     ).grid(row=0, column=1, padx=(6, 0))
 
-    ttk.Label(frame, text="Dossier de sortie par défaut :").grid(
+    ttk.Label(frame, text="Année des données :").grid(
         row=3, column=0, sticky="w"
     )
+    year_var = tk.StringVar(
+        value=(
+            settings.get("year")
+            if isinstance(settings.get("year"), str)
+            else default_year
+        )
+    )
+    ttk.Spinbox(
+        frame,
+        from_=1000,
+        to=9999,
+        textvariable=year_var,
+        width=8,
+    ).grid(row=4, column=0, sticky="w", pady=(2, 8))
+
+    ttk.Label(frame, text="Dossier de sortie par défaut :").grid(
+        row=5, column=0, sticky="w"
+    )
     output_row = ttk.Frame(frame)
-    output_row.grid(row=4, column=0, sticky="ew", pady=(2, 8))
+    output_row.grid(row=6, column=0, sticky="ew", pady=(2, 8))
     ttk.Entry(output_row, textvariable=output_folder_var, width=48).grid(
         row=0, column=0, sticky="ew"
     )
@@ -188,8 +209,8 @@ def lancer_interface(
         text=(
             "Dossiers spécifiques (facultatifs, sinon dossier par défaut) :"
         ),
-    ).grid(row=5, column=0, sticky="w", pady=(2, 4))
-    for row, (product, label) in enumerate(output_products.items(), start=6):
+    ).grid(row=7, column=0, sticky="w", pady=(2, 4))
+    for row, (product, label) in enumerate(output_products.items(), start=8):
         product_row = ttk.Frame(frame)
         product_row.grid(row=row, column=0, sticky="ew", pady=2)
         ttk.Label(product_row, text=f"{label} :", width=16).grid(
@@ -213,7 +234,7 @@ def lancer_interface(
     if not isinstance(saved_choice, str) or saved_choice not in export_choices:
         saved_choice = next(iter(export_choices), "1")
     choix_var = tk.StringVar(value=saved_choice)
-    first_choice_row = 6 + len(output_products)
+    first_choice_row = 8 + len(output_products)
     for row, (choix, description) in enumerate(
         export_choices.items(),
         start=first_choice_row,
@@ -247,6 +268,7 @@ def lancer_interface(
         settings = {
             "input_file": input_file_var.get().strip(),
             "output_folder": output_folder_var.get().strip(),
+            "year": year_var.get().strip(),
             "output_folders": {
                 product: variable.get().strip()
                 for product, variable in output_folder_vars.items()
@@ -305,11 +327,21 @@ def lancer_interface(
         choix = choix_var.get()
         selected_input = input_file_var.get().strip()
         selected_output = output_folder_var.get().strip()
+        selected_year = year_var.get().strip()
         selected_output_folders = {
             product: variable.get().strip()
             for product, variable in output_folder_vars.items()
             if variable.get().strip()
         }
+        try:
+            selected_year = validate_year(selected_year)
+        except ValueError as error:
+            messagebox.showerror(
+                "Année invalide",
+                str(error),
+                parent=root,
+            )
+            return
 
         if not selected_input or not os.path.isfile(selected_input):
             messagebox.showerror(
@@ -340,6 +372,7 @@ def lancer_interface(
             selected_input,
             selected_output,
             selected_output_folders,
+            selected_year,
             signaler_progression,
         )
 

@@ -5,7 +5,7 @@ import ctypes
 
 from pipeline import run_pipeline
 from excel_export import ExcelExporter
-from config import EXPORT_FOLDER
+from config import EXPORT_FOLDER, YEAR, validate_year
 
 
 EXPORT_CHOICES = {
@@ -135,11 +135,12 @@ def _generer_exports(
     input_file=None,
     output_folder=None,
     output_folders=None,
+    year=YEAR,
     progress_callback=None,
 ):
     if progress_callback is not None:
         progress_callback(0, 0, "Analyse des données...")
-    resultats = run_pipeline(input_file)
+    resultats = run_pipeline(input_file, year=year)
     _exporter_resultats(
         choix,
         resultats,
@@ -147,6 +148,13 @@ def _generer_exports(
         output_folders,
         progress_callback,
     )
+
+
+def _parse_year(value):
+    try:
+        return validate_year(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
 
 
 def main(argv=None):
@@ -183,6 +191,12 @@ def main(argv=None):
         choices=PRODUCT_CHOICES,
         help="one or more exports to generate: errors, valid_fields, employees, libraries or all",
     )
+    parser.add_argument(
+        "-y",
+        "--year",
+        type=_parse_year,
+        help=f"Year to process (defaults to {YEAR})",
+    )
     args = parser.parse_args(argv)
 
     if args.gui:
@@ -196,6 +210,7 @@ def main(argv=None):
                 args.employees_output_dir,
                 args.libraries_output_dir,
                 args.product,
+                args.year,
             )
         ):
             parser.error("--gui cannot be combined with other options")
@@ -224,6 +239,7 @@ def main(argv=None):
             args.input_file,
             args.output_dir,
             args.product,
+            args.year,
             *output_folders.values(),
         )
     ):
@@ -242,6 +258,7 @@ def main(argv=None):
             input_file=args.input_file,
             output_folder=args.output_dir,
             output_folders=output_folders,
+            year=args.year or YEAR,
         )
         print()
         print("Asked files have been generated in the configured output folders.")

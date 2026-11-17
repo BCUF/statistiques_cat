@@ -1,7 +1,6 @@
-'''
-Ce fichier contient les paramètres modifiables du programme. On les réunit dans un fichier séparé afin de se faciliter le travail à l'avenir, lorsqu'il faudra par exemple lancer le code en 2027 (il suffira alors de changer la valeur de la variable YEAR dans ce fichier), ou si l'on souhaite changer les noms de fichiers utilisés (INPUT_FILENAME) et exportés (ERROR_FILENAME et CORRECT_FILENAME).
-'''
+"""Defaults and shared settings used by the program."""
 import os
+from typing import NamedTuple
 
 # Nom du dossier dans lequel les fichiers Excel seront exportés. Si celui-ci n'existe pas, il sera créé par notre programme:
 EXPORT_FOLDER = os.getenv("STAT_EXPORT_FOLDER", "../Exports")
@@ -12,46 +11,69 @@ ERROR_FILENAME = "erreurs_{date}.xlsx"
 # Nom du fichier qui contiendra les informations relatives aux champs corrects, qui ne contiennent pas d'erreurs:
 CORRECT_FILENAME = "champs_corrects_separes_{date}.xlsx"
 
-# Année en cours: à changer chaque année:
+# Année utilisée par défaut si aucune année n'est choisie dans le CLI ou le GUI:
 YEAR = "2026"
 
 # Regex pour le mois et le jour:
 MONTH_PATTERN = r"[01]\d"
 DAY_PATTERN = r"[0-3]\d"
 
-# Regex pour la date entière:
-DATE_PATTERN = rf"{YEAR}{MONTH_PATTERN}{DAY_PATTERN}"
 
-# Regex pour la date (qu'on utilise une fois dans transformations_df.py):
-DATE_SPLIT_PATTERN = (
-    rf'({YEAR})'
-    rf'({MONTH_PATTERN})'
-    rf'({DAY_PATTERN})'
-)
+class YearPatterns(NamedTuple):
+    date_pattern: str
+    date_split_pattern: str
+    catalogage_pattern: str
+    indexation_pattern: str
+    cat_ind_pattern: str
 
-# Regex pour le catalogage:
-CATALOGAGE_PATTERN = (
-    rf'\$\$a\s+[A-Z2_]{{5}}/'
-    rf'{DATE_PATTERN}/'
-    rf'[a-z]{{3}}/'
-    rf'[CRN][A_][ASZDGELFOPK_][CRIV]'
-)
 
-# Regex pour l'indexation:
-INDEXATION_PATTERN = (
-    rf'\$\$a\s+[A-Z2_]{{5}}/'
-    rf'{DATE_PATTERN}/'
-    rf'[a-z]{{3}}/'
-    rf'I[A_][IJN]_'
-)
+def validate_year(year: str) -> str:
+    if len(year) != 4 or not year.isascii() or not year.isdigit():
+        raise ValueError("L'année doit être composée de quatre chiffres.")
+    return year
 
-# Regex permettant de séparer les champs 993 dans leurs différentes composantes dans transformations_df.py:
-CAT_IND_PATTERN = (
-    rf'\$\$a\s+([A-Z2_]{{5}})'
-    rf'/({DATE_PATTERN})'
-    rf'/([a-z]{{3}})'
-    rf'/([CRNI][A_][ASZDGELFIJNOPK_][CRIV_])'
-)
+
+def get_year_patterns(year: str) -> YearPatterns:
+    year = validate_year(year)
+    date_pattern = rf"{year}{MONTH_PATTERN}{DAY_PATTERN}"
+    date_split_pattern = (
+        rf'({year})'
+        rf'({MONTH_PATTERN})'
+        rf'({DAY_PATTERN})'
+    )
+    catalogage_pattern = (
+        rf'\$\$a\s+[A-Z2_]{{5}}/'
+        rf'{date_pattern}/'
+        rf'[a-z]{{3}}/'
+        rf'[CRN][A_][ASZDGELFOPK_][CRIV]'
+    )
+    indexation_pattern = (
+        rf'\$\$a\s+[A-Z2_]{{5}}/'
+        rf'{date_pattern}/'
+        rf'[a-z]{{3}}/'
+        rf'I[A_][IJN]_'
+    )
+    cat_ind_pattern = (
+        rf'\$\$a\s+([A-Z2_]{{5}})'
+        rf'/({date_pattern})'
+        rf'/([a-z]{{3}})'
+        rf'/([CRNI][A_][ASZDGELFIJNOPK_][CRIV_])'
+    )
+    return YearPatterns(
+        date_pattern,
+        date_split_pattern,
+        catalogage_pattern,
+        indexation_pattern,
+        cat_ind_pattern,
+    )
+
+
+_DEFAULT_YEAR_PATTERNS = get_year_patterns(YEAR)
+DATE_PATTERN = _DEFAULT_YEAR_PATTERNS.date_pattern
+DATE_SPLIT_PATTERN = _DEFAULT_YEAR_PATTERNS.date_split_pattern
+CATALOGAGE_PATTERN = _DEFAULT_YEAR_PATTERNS.catalogage_pattern
+INDEXATION_PATTERN = _DEFAULT_YEAR_PATTERNS.indexation_pattern
+CAT_IND_PATTERN = _DEFAULT_YEAR_PATTERNS.cat_ind_pattern
 
 # Regex pour les différents traitements et modes d'acquisition possibles (TRAITEMENT_PATTERN est utilisé dans transformations_df.py):
 TRAITEMENT_1_CODES = "CRNI"

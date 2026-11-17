@@ -23,6 +23,8 @@ For command-line exports, provide the full path to the input workbook and option
 uv run main.py --input-file "C:\Data\champs_990_993_all_20261112.xlsx" --output-dir "C:\Data\Exports" --errors-output-dir "C:\Data\Errors" --valid-fields-output-dir "C:\Data\Correct" --employees-output-dir "C:\Data\Employees" --libraries-output-dir "C:\Data\Libraries" --product all
 ```
 
+Add `--year 2025` (or `-y 2025`) to process another year; it defaults to `config.YEAR`. The GUI has the same year option and remembers it with the other saved preferences. Years must contain exactly four digits.
+
 Options are `-i, --input-file` (required for command-line exports), `-o, --output-dir` (shared destination; defaults to the configured export folder), and `-p, --product` (one or more of `errors`, `valid_fields`, `employees`, `libraries`, or `all`; defaults to `all`). Use `--errors-output-dir`, `--valid-fields-output-dir`, `--employees-output-dir`, and `--libraries-output-dir` to override the destination for an individual product. If an individual destination is omitted, that product uses `--output-dir`. Separate multiple products with spaces, for example `--product errors valid_fields`. These choices generate the errors workbook, correct-fields workbook, per-employee workbooks, per-library workbooks, or all products, respectively. In the GUI, enter an optional specific folder for each product; products without a specific folder use the default output folder.
 
 ## Create a release
