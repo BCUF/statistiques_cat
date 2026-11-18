@@ -531,6 +531,8 @@ class ExcelExporter:
 
         os.makedirs(self.export_dir, exist_ok=True)
 
+        date_etat = dt.datetime.today().strftime("%d.%m.%Y")
+
         for biblio, data in bibli_files.items():
 
             nom_biblio = (
@@ -642,7 +644,9 @@ class ExcelExporter:
                             "ne font pas nécessairement partie du personnel "
                             "de la bibliothèque. Toute personne ayant effectué "
                             "du catalogage pour cette bibliothèque est prise en compte."
-                        )
+                        ),
+                        periode=year,
+                        date_etat=date_etat
                     )
 
 
@@ -796,8 +800,9 @@ class ExcelExporter:
                                 "ne font pas nécessairement partie du personnel "
                                 "de la bibliothèque. Toute personne ayant effectué "
                                 "de l'indexation pour cette bibliothèque est prise en compte."
-                            )
-                        
+                            ),
+                            periode=year,
+                            date_etat=date_etat
                     )
 
 
