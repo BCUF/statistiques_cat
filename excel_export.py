@@ -539,13 +539,23 @@ class ExcelExporter:
                 .replace("\\", "_")
             )
 
+            path_stat_biblio = os.path.join(
+                self.export_dir,
+                nom_biblio
+            )
+
+            os.makedirs(
+                path_stat_biblio,
+                exist_ok=True
+            )
+
             fname = (
                 f"{nom_biblio}_"
                 f"{year}.xlsx"
             )
 
             path = os.path.join(
-                self.export_dir,
+                path_stat_biblio,
                 fname
             )
 
