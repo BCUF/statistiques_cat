@@ -58,7 +58,7 @@ def extract_domains(champ_990):
         return ["Domaine inconnu"]
 
     codes = re.findall(
-        r"\$\$c\s+cdd\s*(\d{3})",
+        r"\$\$c\s+cdd\s*(\d{3,4})",
         str(champ_990),
         flags=re.IGNORECASE
     )
