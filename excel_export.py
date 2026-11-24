@@ -541,13 +541,23 @@ class ExcelExporter:
                 .replace("\\", "_")
             )
 
+            path_stat_biblio = os.path.join(
+                self.export_dir,
+                nom_biblio
+            )
+
+            os.makedirs(
+                path_stat_biblio,
+                exist_ok=True
+            )
+
             fname = (
                 f"{nom_biblio}_"
                 f"{year}.xlsx"
             )
 
             path = os.path.join(
-                self.export_dir,
+                path_stat_biblio,
                 fname
             )
 
@@ -595,7 +605,7 @@ class ExcelExporter:
                     ExcelHelper.formater_feuille_statistique(
                         writer,
                         df_cat_export,
-                        "Catalogage",
+                        "C-nbr par personne",
                         {
                             "A": (
                                 "Mode d'acquisition",
@@ -685,7 +695,7 @@ class ExcelExporter:
                     ExcelHelper.formater_feuille_statistique(
                         writer,
                         df_cat_biblio,
-                        "Catalogage",
+                        "C-nbr par biblio",
                         {
                             "A": (
                                 "Mode d'acquisition",
@@ -760,7 +770,7 @@ class ExcelExporter:
                     ExcelHelper.formater_feuille_statistique(
                         writer,
                         df_ind_export,
-                        "Indexation",
+                        "I-nbr par personne",
                         {
                             "I": (
                                 "Mode d'indexation",
@@ -840,7 +850,7 @@ class ExcelExporter:
                     ExcelHelper.formater_feuille_statistique(
                         writer,
                         df_ind_biblio,
-                        "Indexation",
+                        "I-nbr par biblio",
                         {
                             "I": (
                                 "Mode d'indexation",
@@ -964,7 +974,8 @@ class ExcelExporter:
                             "donc pas au nombre réel de notices traitées.\n"
                             "Pour le nombre total de notices traitées, "
                             "merci de vous référer aux feuilles "
-                            "'Catalogage' ou 'Indexation'."
+                            "'C-nbr par personne' ou "
+                            "'I-nbr par personne'."
                         ),
                         note_format
                     )
