@@ -51,13 +51,13 @@ def get_year_patterns(year: str) -> YearPatterns:
         rf'\$\$a\s+[A-Z2_]{{5}}/'
         rf'{date_pattern}/'
         rf'[a-z]{{3}}/'
-        rf'I[A_][IJN]_'
+        rf'I[A_][IJN][IGJ_]'
     )
     cat_ind_pattern = (
         rf'\$\$a\s+([A-Z2_]{{5}})'
         rf'/({date_pattern})'
         rf'/([a-z]{{3}})'
-        rf'/([CRNI][A_][ASZDGELFIJNOPK_][CRIV_])'
+        rf'/([CRNI][A_][ASZDGELFIJNOPK_][CRIVGJ_])'
     )
     return YearPatterns(
         date_pattern,
@@ -79,7 +79,7 @@ CAT_IND_PATTERN = _DEFAULT_YEAR_PATTERNS.cat_ind_pattern
 TRAITEMENT_1_CODES = "CRNI"
 TRAITEMENT_2_CODES = "A_"
 TRAITEMENT_3_CODES = "ASZDGELFIJNOPK_"
-TRAITEMENT_4_CODES = "CRIV_"
+TRAITEMENT_4_CODES = "CRIVGJ_"
 
 TRAITEMENT_PATTERN = (
     rf'([{TRAITEMENT_1_CODES}])'

@@ -141,8 +141,10 @@ class ExcelHelper:
 
         ligne_depart = 1
 
-        if titre is not None:
+        if titre is not None and remarque is not None:
             ligne_depart = 10
+        elif titre is not None:
+            ligne_depart = 4
 
         ligne_entete = ligne_depart
         premiere_ligne_donnees = ligne_entete + 1
@@ -208,7 +210,7 @@ class ExcelHelper:
 
             worksheet.merge_range(
                 4, 0,      
-                7, 8,      
+                7, 9,      
                 remarque,
                 note_format
             )
@@ -260,10 +262,18 @@ class ExcelHelper:
             else:
                 fmt = formats["bold"]
 
+            nom_affiche = col_name
+
+            if col_name == "I vocab":
+                nom_affiche = "I"
+
+            elif col_name == "J vocab":
+                nom_affiche = "J"
+
             worksheet.write(
                 ligne_entete,
                 col_index,
-                col_name,
+                nom_affiche,
                 fmt
             )
 
@@ -311,10 +321,18 @@ class ExcelHelper:
                 fmt_header = formats["bold_right"]
 
             # On réécrit l'en-tête sur la ligne 1 pour qu'il ait des bordures plus épaisses à certains endroits:
+            header_affiche = header
+
+            if header == "I vocab":
+                header_affiche = "I"
+
+            elif header == "J vocab":
+                header_affiche = "J"
+
             worksheet.write(
                 ligne_entete,
                 col,
-                header,
+                header_affiche,
                 fmt_header
             )
 

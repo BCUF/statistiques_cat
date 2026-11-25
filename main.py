@@ -107,6 +107,7 @@ def _exporter_resultats(
             resultats["origine"],
             resultats["cat"],
             resultats["ind"],
+            year
         )
         report_completed_output("Fichier des champs corrects créé")
 
