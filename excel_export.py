@@ -36,7 +36,8 @@ class ExcelExporter:
             df_CENT,
             df_origine,
             df_cat,
-            df_ind):
+            df_ind,
+            year):
 
         # On crée le dossier export_dir si celui-ci n'existe pas encore:
         os.makedirs(self.export_dir, exist_ok=True)
@@ -49,11 +50,15 @@ class ExcelExporter:
         # On crée le chemin d'exportation en joignant le chemin du dossier (self.export_dir) et le nom du fichier choisi (fname):
         path = os.path.join(self.export_dir, fname)
 
+        # Pour afficher la période et le "Etat au dd.mm.yyyy"
+        date_etat = dt.datetime.today().strftime("%d.%m.%Y")
+
         # On définit nos différentes feuilles Excel et la façon dont elles doivent être formatées:
         feuilles = [
             {
                 "df": df_C_par_personne,
                 "nom": "C-nbr par personne",
+                "titre": "Catalogage par personne",
                 "zones": {
                     "A": ("Mode d'acquisition", 5),
                     "C": ("Type de traitement", 3),
@@ -79,6 +84,7 @@ class ExcelExporter:
             {
                 "df": df_C_par_biblio,
                 "nom": "C-nbr par biblio",
+                "titre": "Catalogage par bibliothèque",
                 "zones": {
                     "A": ("Mode d'acquisition", 5),
                     "C": ("Type de traitement", 3),
@@ -104,9 +110,11 @@ class ExcelExporter:
             {
                 "df": df_I_par_personne,
                 "nom": "I-nbr par personne",
+                "titre": "Indexation par personne",
                 "zones": {
                     "I": ("Type de traitement", 2),
-                    "01": ("Nombre indexation par mois", 6)
+                    "_": ("Vocabulaire utilisé", 3),
+                    "01": ("Nombre indexation par mois", 11)
                 },
                 "rotated": [
                     "Traitement pour une autre biblio",
@@ -116,6 +124,8 @@ class ExcelExporter:
                 "borders": [
                     "Nombre total indexation",
                     "Rien à préciser",
+                    ("I", "avant"),
+                    ("_", "avant"),
                     ("01", "avant")
                 ]
             },
@@ -123,8 +133,10 @@ class ExcelExporter:
             {
                 "df": df_I_par_biblio,
                 "nom": "I-nbr par biblio",
+                "titre": "Indexation par bibliothèque",
                 "zones": {
                     "I": ("Mode d'indexation", 2),
+                    "_": ("Vocabulaire utilisé", 3),
                     "01": ("Nombre indexation par mois", 6)
                 },
                 "rotated": [
@@ -135,6 +147,8 @@ class ExcelExporter:
                 "borders": [
                     "Nombre total indexation",
                     "Rien à préciser",
+                    ("I", "avant"),
+                    ("_", "avant"),
                     ("01", "avant")
                 ]
             },
@@ -194,7 +208,10 @@ class ExcelExporter:
                     feuille["zones"],
                     feuille["rotated"],
                     feuille["wrapped"],
-                    feuille["borders"]
+                    feuille["borders"],
+                    titre=feuille.get("titre"),
+                    periode=year,
+                    date_etat=date_etat
                 )
 
             ExcelHelper.export_origine(writer, df_origine, "Origine")
@@ -247,6 +264,8 @@ class ExcelExporter:
     ##################################################
 
     def export_par_personne(self, person_files, year, on_file_complete=None):
+
+        date_etat = dt.datetime.today().strftime("%d.%m.%Y")
 
         for personne, data in person_files.items():
 
@@ -344,7 +363,10 @@ class ExcelExporter:
                             ("A", "avant"),
                             ("C", "avant"),
                             ("01", "avant")
-                        ]
+                        ],
+                        titre=f"Catalogage",
+                        periode=year,
+                        date_etat=date_etat
                     )
 
                 # ==================================
@@ -388,6 +410,10 @@ class ExcelExporter:
                                 "Mode d'indexation",
                                 2
                             ),
+                            "_": (
+                                "Vocabulaire utilisé",
+                                3
+                            ),
                             "01": (
                                 "Nombre indexation par mois",
                                 6
@@ -403,8 +429,12 @@ class ExcelExporter:
                         [
                             "Nombre total indexation",
                             "Rien à préciser",
+                            ("_", "avant"),
                             ("01", "avant")
-                        ]
+                        ],
+                        titre=f"Indexation",
+                        periode=year,
+                        date_etat=date_etat
                     )
 
                 # ==================================
@@ -531,6 +561,8 @@ class ExcelExporter:
 
         os.makedirs(self.export_dir, exist_ok=True)
 
+        date_etat = dt.datetime.today().strftime("%d.%m.%Y")
+
         for biblio, data in bibli_files.items():
 
             nom_biblio = (
@@ -642,7 +674,9 @@ class ExcelExporter:
                             "ne font pas nécessairement partie du personnel "
                             "de la bibliothèque. Toute personne ayant effectué "
                             "du catalogage pour cette bibliothèque est prise en compte."
-                        )
+                        ),
+                        periode=year,
+                        date_etat=date_etat
                     )
 
 
@@ -722,7 +756,10 @@ class ExcelExporter:
                             ("A", "avant"),
                             ("C", "avant"),
                             ("01", "avant")
-                        ]
+                        ],
+                        titre="Catalogage par bibliothèque de COLLUNI",
+                        periode=year,
+                        date_etat=date_etat
                     )
 
 
@@ -772,6 +809,10 @@ class ExcelExporter:
                                 "Mode d'indexation",
                                 2
                             ),
+                            "_": (
+                                "Vocabulaire utilisé",
+                                3
+                            ),
                             "01": (
                                 "Nombre indexation par mois",
                                 6
@@ -787,6 +828,7 @@ class ExcelExporter:
                         [
                             "Nombre total indexation",
                             "Rien à préciser",
+                            ("_", "avant"),
                             ("01", "avant")
                         ],
                             titre="Indexation par personne",
@@ -796,8 +838,9 @@ class ExcelExporter:
                                 "ne font pas nécessairement partie du personnel "
                                 "de la bibliothèque. Toute personne ayant effectué "
                                 "de l'indexation pour cette bibliothèque est prise en compte."
-                            )
-                        
+                            ),
+                            periode=year,
+                            date_etat=date_etat
                     )
 
 
@@ -851,6 +894,10 @@ class ExcelExporter:
                                 "Mode d'indexation",
                                 2
                             ),
+                            "_": (
+                                "Vocabulaire utilisé",
+                                3
+                            ),
                             "01": (
                                 "Nombre indexation par mois",
                                 6
@@ -866,8 +913,12 @@ class ExcelExporter:
                         [
                             "Nombre total indexation",
                             "Rien à préciser",
+                            ("_", "avant"),
                             ("01", "avant")
-                        ]
+                        ],
+                        titre="Indexation par bibliothèque de COLLUNI",
+                        periode=year,
+                        date_etat=date_etat
                     )
 
                 # ==================================

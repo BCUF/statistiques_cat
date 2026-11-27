@@ -133,14 +133,18 @@ class ExcelHelper:
         wrapped_columns,
         cols_with_border_names,
         titre=None,
-        remarque=None):
+        remarque=None,
+        periode=None,
+        date_etat=None):
 
         # Si la feuille Excel ne contient pas de titre, le tableau commencera à la 2ème ligne dans Excel (startrow=1, car Python commence à compter à partir de 0). Sinon, il commencera à la ligne 7 (pour laisser de la place à la remarque entre le titre et le tableau):
 
         ligne_depart = 1
 
-        if titre is not None:
-            ligne_depart = 8
+        if titre is not None and remarque is not None:
+            ligne_depart = 10
+        elif titre is not None:
+            ligne_depart = 4
 
         ligne_entete = ligne_depart
         premiere_ligne_donnees = ligne_entete + 1
@@ -173,6 +177,27 @@ class ExcelHelper:
                 format_titre
             )
 
+            format_info = workbook.add_format({
+                "italic": True
+            })
+
+            if periode is not None:
+                worksheet.merge_range(
+                    1, 0,
+                    1, 3,
+                    f"Période {periode}",
+                    format_info
+                )
+
+            if date_etat is not None:
+                worksheet.merge_range(
+                    2, 0,
+                    2, 3,
+                    f"Etat au {date_etat}",
+                    format_info
+                )
+
+
         # Formatage de la feuille Excel dans le cas où celle-ci contient une remarque:
 
         if titre is not None and remarque is not None:
@@ -184,8 +209,8 @@ class ExcelHelper:
             })
 
             worksheet.merge_range(
-                2, 0,      # A3
-                5, 8,      # H7
+                4, 0,      
+                7, 9,      
                 remarque,
                 note_format
             )
@@ -237,10 +262,18 @@ class ExcelHelper:
             else:
                 fmt = formats["bold"]
 
+            nom_affiche = col_name
+
+            if col_name == "I vocab":
+                nom_affiche = "I"
+
+            elif col_name == "J vocab":
+                nom_affiche = "J"
+
             worksheet.write(
                 ligne_entete,
                 col_index,
-                col_name,
+                nom_affiche,
                 fmt
             )
 
@@ -288,10 +321,18 @@ class ExcelHelper:
                 fmt_header = formats["bold_right"]
 
             # On réécrit l'en-tête sur la ligne 1 pour qu'il ait des bordures plus épaisses à certains endroits:
+            header_affiche = header
+
+            if header == "I vocab":
+                header_affiche = "I"
+
+            elif header == "J vocab":
+                header_affiche = "J"
+
             worksheet.write(
                 ligne_entete,
                 col,
-                header,
+                header_affiche,
                 fmt_header
             )
 

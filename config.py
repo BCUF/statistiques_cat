@@ -51,13 +51,13 @@ def get_year_patterns(year: str) -> YearPatterns:
         rf'\$\$a\s+[A-Z2_]{{5}}/'
         rf'{date_pattern}/'
         rf'[a-z]{{3}}/'
-        rf'I[A_][IJN]_'
+        rf'I[A_][IJN][IGJ_]'
     )
     cat_ind_pattern = (
         rf'\$\$a\s+([A-Z2_]{{5}})'
         rf'/({date_pattern})'
         rf'/([a-z]{{3}})'
-        rf'/([CRNI][A_][ASZDGELFIJNOPK_][CRIV_])'
+        rf'/([CRNI][A_][ASZDGELFIJNOPK_][CRIVGJ_])'
     )
     return YearPatterns(
         date_pattern,
@@ -79,7 +79,7 @@ CAT_IND_PATTERN = _DEFAULT_YEAR_PATTERNS.cat_ind_pattern
 TRAITEMENT_1_CODES = "CRNI"
 TRAITEMENT_2_CODES = "A_"
 TRAITEMENT_3_CODES = "ASZDGELFIJNOPK_"
-TRAITEMENT_4_CODES = "CRIV_"
+TRAITEMENT_4_CODES = "CRIVGJ_"
 
 TRAITEMENT_PATTERN = (
     rf'([{TRAITEMENT_1_CODES}])'
@@ -154,211 +154,5 @@ CDD_MAPPING = {
     "410": "Linguistique générale",
     "800": "Littérature générale et comparée",
     "899": "Littérature suisse"
-}
-
-# Personnel de chaque bibliothèque: créé initialement pour trier les personnes pour chaque bibliothèque, mais trop difficile à maintenir sur le long terme. A la place, une remarque indiquera dans chaque fichier que toutes les personnes présentes dans la liste ne font pas nécessairement partie du personnel de la bibliothèque, mais qu'elles ont apporté une aide ponctuelle à la bibliothèque concernée.
-BIBLIO_PERSONNES = {
-    "AEF": [
-        "fcl",
-        "nsc",
-        "rya"
-    ],
-
-    "AVF": [
-        "fcl"
-    ],
-
-    "BEF": [
-        "ell"
-    ],
-
-    "BFD": [
-        "cho",
-        "clg",
-        "dme",
-        "mco",
-        "mib"
-    ],
-
-    "BHAP": [
-        "clc",
-        "dch",
-        "lem",
-        "mdo",
-        "mne",
-        "msc"
-    ],
-
-    "BHT": [
-        "ddu",
-        "fsp",
-        "lem",
-        "mdo",
-        "mjo",
-        "nci",
-        "pvo",
-        "vba"
-    ],
-
-    "BLE": [
-        "asa",
-        "mja",
-        "mso"
-    ],
-
-    "BLL": [
-        "acb",
-        "cms",
-        "mso",
-        "mtl"
-    ],
-
-    "BP2": [
-        "gmi",
-        "imc",
-        "jde",
-        "jle",
-        "mdo",
-        "msc",
-        "mtl",
-        "pbr",
-        "pvo"
-    ],
-
-    "CENT": [
-        "aal",
-        "aas",
-        "acb",
-        "asa",
-        "car",
-        "cat",
-        "cbi",
-        "clc",
-        "cms",
-        "cri",
-        "dch",
-        "ddu",
-        "dgu",
-        "eob",
-        "ero",
-        "fcl",
-        "fcr",
-        "fsp",
-        "hde",
-        "jga",
-        "jgr",
-        "lbu",
-        "lco",
-        "lem",
-        "mdo",
-        "mja",
-        "mjo",
-        "mne",
-        "mre",
-        "msc",
-        "mso",
-        "mtl",
-        "pbr",
-        "pvo",
-        "ser",
-        "sle",
-        "slo",
-        "vba",
-        "zpe"
-    ],
-
-    "COF": [
-        "cat"
-    ],
-
-    "DMDP": [
-        "aoe",
-        "bbh",
-        "mba"
-    ],
-
-    "DOKPE": [
-        "sbr"
-    ],
-
-    "EOC": [
-        "aas",
-        "lem"
-    ],
-
-    "IFF": [
-        "cho",
-        "dme",
-        "mco"
-    ],
-
-    "IIEDH": [
-        "dme",
-        "mib"
-    ],
-
-    "IPC": [
-        "dbl",
-        "ell"
-    ],
-
-    "MAH": [
-        "fcl"
-    ],
-
-    "MAR": [
-        "fcl"
-    ],
-
-    "MFDP": [
-        "aca",
-        "gle",
-        "lcu",
-        "sgo"
-    ],
-
-    "MUS": [
-        "lem"
-    ],
-
-    "PSPE": [
-        "ade",
-        "cst",
-        "dbl"
-    ],
-
-    "SAEF": [
-        "fcl"
-    ],
-
-    "SBC": [
-        "fcl"
-    ],
-
-    "SCANT": [
-        "clc",
-        "eob",
-        "mib",
-        "mne"
-    ],
-
-    "SDU": [
-        "cho",
-        "mbi"
-    ],
-
-    "STS": [
-        "imc",
-        "jde",
-        "pbr"
-    ],
-
-    "TCF": [
-        "api"
-    ],
-
-    "VCR": [
-        "fcl"
-    ]
 }
 

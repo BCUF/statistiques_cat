@@ -26,7 +26,8 @@ COLONNES_STATISTIQUES_CATALOGAGE = [
 COLONNES_STATISTIQUES_INDEXATION = [
     "Traitement pour une autre biblio",
     "Rien à préciser",
-    "I", "J", "N"
+    "I", "J", "N",
+    "_", "I vocab", "G", "J vocab"
 ]
 
 
@@ -363,7 +364,7 @@ def create_other_dfs(df):
     errors="ignore" permet d'éviter une erreur si l'une de ces colonnes n'existe pas. Cela peut sembler inutile et contre-intuitif, mais ayant dû débugger ce code, je sais que cette ligne peut être utile et faire gagner du temps en cas de problème.
     '''
     df_final_ind_par_personne = df_final_ind_par_personne.drop(
-        columns=["Traitement 1_I", "Traitement 4__"],
+        columns=["Traitement 1_I"],
         errors="ignore"
     )
 
@@ -373,7 +374,11 @@ def create_other_dfs(df):
         "Traitement 2__": "Rien à préciser",
         "Traitement 3_I": "I",
         "Traitement 3_J": "J",
-        "Traitement 3_N": "N"
+        "Traitement 3_N": "N",
+        "Traitement 4__": "_",
+        "Traitement 4_I": "I vocab",
+        "Traitement 4_G": "G",
+        "Traitement 4_J": "J vocab"
     })    
 
     df_final_ind_par_personne = _completer_colonnes_statistiques(
@@ -487,7 +492,7 @@ def create_other_dfs(df):
     df_final_ind_par_biblio = df_final_ind_par_biblio.merge(par_mois, on="Bibliothèque")
 
     df_final_ind_par_biblio = df_final_ind_par_biblio.drop(
-        columns=["Traitement 1_I", "Traitement 4__"],
+        columns=["Traitement 1_I"],
         errors="ignore"
         )
 
@@ -496,7 +501,11 @@ def create_other_dfs(df):
         "Traitement 2__": "Rien à préciser",
         "Traitement 3_I": "I",
         "Traitement 3_J": "J",
-        "Traitement 3_N": "N"
+        "Traitement 3_N": "N",
+        "Traitement 4__": "_",
+        "Traitement 4_I": "I vocab",
+        "Traitement 4_G": "G",
+        "Traitement 4_J": "J vocab"
     })    
 
     df_final_ind_par_biblio = _completer_colonnes_statistiques(
@@ -1384,8 +1393,7 @@ def create_ind_stats_par_bibliotheque(
 
     df_final = df_final.drop(
         columns=[
-            "Traitement 1_I",
-            "Traitement 4__"
+            "Traitement 1_I"
         ],
         errors="ignore"
     )
@@ -1396,7 +1404,11 @@ def create_ind_stats_par_bibliotheque(
             "Traitement 2__": "Rien à préciser",
             "Traitement 3_I": "I",
             "Traitement 3_J": "J",
-            "Traitement 3_N": "N"
+            "Traitement 3_N": "N",
+            "Traitement 4__": "_",
+            "Traitement 4_I": "I vocab",
+            "Traitement 4_G": "G",
+            "Traitement 4_J": "J vocab"
         }
     )
 
@@ -1405,7 +1417,11 @@ def create_ind_stats_par_bibliotheque(
         "Rien à préciser",
         "I",
         "J",
-        "N"
+        "N",
+        "_",
+        "I vocab",
+        "G",
+        "J vocab"
     ]
 
     for col in colonnes_obligatoires:
@@ -1430,6 +1446,10 @@ def create_ind_stats_par_bibliotheque(
         "I",
         "J",
         "N",
+        "_",
+        "I vocab",
+        "G",
+        "J vocab",
         "01", "02", "03", "04",
         "05", "06", "07", "08",
         "09", "10", "11", "12"
@@ -1758,8 +1778,7 @@ def create_ind_stats_biblio(df):
 
     df_final = df_final.drop(
         columns=[
-            "Traitement 1_I",
-            "Traitement 4__"
+            "Traitement 1_I"
         ],
         errors="ignore"
     )
@@ -1771,7 +1790,11 @@ def create_ind_stats_biblio(df):
                 "Traitement 2__": "Rien à préciser",
                 "Traitement 3_I": "I",
                 "Traitement 3_J": "J",
-                "Traitement 3_N": "N"
+                "Traitement 3_N": "N",
+                "Traitement 4__": "_",
+                "Traitement 4_I": "I vocab",
+                "Traitement 4_G": "G",
+                "Traitement 4_J": "J vocab"
             }
         )
     )
@@ -1783,7 +1806,11 @@ def create_ind_stats_biblio(df):
         "Rien à préciser",
         "I",
         "J",
-        "N"
+        "N",
+        "_",
+        "I vocab",
+        "G",
+        "J vocab"
     ]
 
     for col in colonnes_obligatoires:
@@ -1814,6 +1841,10 @@ def create_ind_stats_biblio(df):
         "I",
         "J",
         "N",
+        "_",
+        "I vocab",
+        "G",
+        "J vocab",
         "01",
         "02",
         "03",
